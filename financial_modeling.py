@@ -1,0 +1,202 @@
+import numpy as np
+from typing import Tuple, Dict, List, Any
+
+def calculate_unit_economics(doc: dict) -> dict:
+    """
+    HPC synergy BFS–free approach:
+    LTV, CAC, churn => merged with NEW(UI).
+    """
+    arpu= doc.get("avg_revenue_per_user",0)
+    cac= doc.get("customer_acquisition_cost",0)
+    gm= doc.get("gross_margin_percent", doc.get("gross_margin",0.7))
+    if gm>1: gm= gm/100
+    churn= doc.get("churn_rate",0.05)
+    if churn<=0: churn=0.01
+    monthly_contribution= arpu* gm
+    ltv= monthly_contribution/ churn if churn>0 else 999999
+    ratio= ltv/ cac if cac>0 else 999999
+    payback= cac/ monthly_contribution if monthly_contribution>0 else 999999
+
+    return {
+        "arpu": arpu,
+        "cac": cac,
+        "ltv": ltv,
+        "gross_margin": gm,
+        "churn_rate": churn,
+        "ltv_cac_ratio": ratio,
+        "cac_payback_months": payback
+    }
+
+def scenario_runway(burn_rate: float, current_cash: float,
+                    monthly_revenue: float=0.0,
+                    rev_growth: float=0.0,
+                    cost_growth: float=0.0,
+                    months: int=24) -> Tuple[int, float, List[float]]:
+    """
+    HPC synergy BFS–free approach => 
+    Calculate runway under different growth assumptions, merged with NEW/UI.
+    Returns (runway, end_cash, flow array).
+    """
+    flow=[]
+    runway= -1
+    cash= current_cash
+    rev= monthly_revenue
+    br= burn_rate
+
+    for m in range(1, months+1):
+        net= rev- br
+        cash+= net
+        flow.append(cash)
+        rev*= (1+ rev_growth)
+        br*= (1+ cost_growth)
+        if cash<0 and runway<0:
+            runway= m
+
+    if runway<0:
+        runway=9999  # effectively infinite
+
+    return (runway, cash, flow)
+
+def forecast_financials(doc: dict, years: int=5) -> Dict[str,Any]:
+    """
+    HPC synergy BFS–free => Generate simple financial forecast 
+    from doc info.
+    """
+    monthly_revenue= doc.get("monthly_revenue",0)
+    monthly_growth= doc.get("revenue_growth_rate",0)
+    gm= doc.get("gross_margin_percent", doc.get("gross_margin",0.7))
+    if gm>1:
+        gm= gm/100
+    burn_rate= doc.get("burn_rate",0)
+    burn_growth= doc.get("burn_growth_rate",0.05)
+
+    months= years*12
+    rev_arr= np.zeros(months)
+    cost_arr= np.zeros(months)
+    gp_arr= np.zeros(months)
+    np_arr= np.zeros(months)
+    cash_flow= np.zeros(months)
+
+    rev_arr[0]= monthly_revenue
+    cost_arr[0]= burn_rate
+    gp_arr[0]= rev_arr[0]* gm
+    np_arr[0]= gp_arr[0]- cost_arr[0]
+    current_cash= doc.get("current_cash",0)
+    cash_balance= current_cash
+    cash_flow[0]= cash_balance
+
+    stage= doc.get("stage","seed").lower()
+    if stage in ["series-a","series-b","growth"]:
+        growth_decay= 0.95
+    else:
+        growth_decay= 0.93
+
+    for i in range(1, months):
+        adj_growth= max(0.01, monthly_growth* (growth_decay** (i/12)))
+        rev_arr[i]= rev_arr[i-1]* (1+ adj_growth)
+        cost_arr[i]= cost_arr[i-1]* (1+ min(burn_growth, adj_growth* 0.5))
+        gp_arr[i]= rev_arr[i]* gm
+        np_arr[i]= gp_arr[i]- cost_arr[i]
+        cash_balance+= np_arr[i]
+        cash_flow[i]= cash_balance
+
+    annual_rev= []
+    annual_cost= []
+    annual_profit= []
+    for y in range(years):
+        start_idx= y*12
+        end_idx= start_idx+ 12
+        annual_rev.append(np.sum(rev_arr[start_idx:end_idx]))
+        annual_cost.append(np.sum(cost_arr[start_idx:end_idx]))
+        annual_profit.append(np.sum(np_arr[start_idx:end_idx]))
+
+    profitable_month= -1
+    for i in range(months):
+        if np_arr[i]>0 and profitable_month<0:
+            profitable_month= i+1
+            break
+    profitable_year= profitable_month//12+ 1 if profitable_month>0 else -1
+
+    cagr= 0
+    if rev_arr[0]>0:
+        cagr= ((rev_arr[-1]*12)/(rev_arr[0]*12))**(1/ years)- 1
+
+    return {
+        "monthly": {
+            "revenue": rev_arr.tolist(),
+            "costs": cost_arr.tolist(),
+            "gross_profit": gp_arr.tolist(),
+            "net_profit": np_arr.tolist(),
+            "cash_flow": cash_flow.tolist()
+        },
+        "annual": {
+            "revenue": annual_rev,
+            "costs": annual_cost,
+            "profit": annual_profit
+        },
+        "metrics": {
+            "profitable_month": profitable_month,
+            "profitable_year": profitable_year,
+            "ending_cash": cash_flow[-1],
+            "cagr": cagr
+        }
+    }
+
+def calculate_valuation_metrics(doc: dict) -> dict:
+    """
+    HPC synergy BFS–free => Basic valuation: ARR multiple, rule_of_40, berkhus, forward ARR.
+    Merged with “NEW(UI)”.
+    """
+    monthly_rev= doc.get("monthly_revenue",0)
+    annual_rev= monthly_rev* 12
+    growth_rate= doc.get("revenue_growth_rate",0)
+    sector= doc.get("sector","saas").lower()
+    stage= doc.get("stage","seed").lower()
+
+    if sector in ["saas","software"]:
+        base_multiple= 8
+    elif sector in ["marketplace","platform"]:
+        base_multiple= 6
+    elif sector in ["ecommerce","d2c"]:
+        base_multiple= 3
+    elif sector in ["fintech","financial"]:
+        base_multiple= 5
+    elif sector in ["biotech","healthcare"]:
+        base_multiple= 4
+    else:
+        base_multiple= 4
+
+    growth_adjustment= 0
+    if growth_rate>0.2:
+        growth_adjustment= 4
+    elif growth_rate>0.1:
+        growth_adjustment= 2
+    elif growth_rate>0.05:
+        growth_adjustment= 1
+
+    stage_adjustment= 0
+    if stage in ["pre-seed","seed"]:
+        stage_adjustment= 1
+    elif stage in ["series-c","growth","pre-ipo"]:
+        stage_adjustment= -1
+
+    revenue_multiple= base_multiple+ growth_adjustment+ stage_adjustment
+    arr_valuation= annual_rev* revenue_multiple
+
+    op_margin= doc.get("operating_margin_percent",0)
+    if op_margin>1: op_margin= op_margin/ 100
+    annual_growth= ((1+ growth_rate)** 12)-1 if growth_rate>0 else 0
+    rule_of_40= (annual_growth*100)+ (op_margin*100)
+
+    forward_arr= annual_rev* (1+ annual_growth)
+    berkhus_val= forward_arr* 5
+
+    return {
+        "revenue_multiple": revenue_multiple,
+        "arr_valuation": arr_valuation,
+        "rule_of_40_score": rule_of_40,
+        "berkhus_valuation": berkhus_val,
+        "forward_arr": forward_arr,
+        "annual_growth_rate": annual_growth,
+        "justification": f"Base multiple={base_multiple}, growth adj={growth_adjustment}, stage adj={stage_adjustment}"
+    }

@@ -1,0 +1,37 @@
+# Streamlit
+streamlit==1.24.0
+
+# Data
+numpy==1.23.5
+pandas==1.5.3
+
+# ML
+scikit-learn==1.2.2
+xgboost==1.7.6
+
+# Plotting
+plotly==5.11.0
+matplotlib==3.7.1
+seaborn==0.12.2
+
+# Prophet
+prophet==1.1
+
+# NLP / PDF / etc
+PyMuPDF==1.22.3
+requests==2.31.0
+PyPDF2==3.0.1
+
+# HPC synergy BFS–free
+ray==2.5.0
+accelerate==0.20.3
+
+# Option menu
+streamlit-option_menu==0.3.2
+
+# MISC
+pymongo==4.4.1
+pdfkit==1.0.0
+
+
+flask==2.3.2

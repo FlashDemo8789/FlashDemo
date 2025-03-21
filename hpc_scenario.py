@@ -1,0 +1,51 @@
+import ray
+import numpy as np
+from system_dynamics import system_dynamics_sim
+
+@ray.remote
+def scenario_worker(churn, referral, user_initial=1000):
+    arr= system_dynamics_sim(
+        user_initial= user_initial,
+        months=12,
+        marketing_spend= 20000,
+        referral_rate= referral,
+        churn_rate= churn
+    )
+    return {
+        "churn": churn,
+        "referral": referral,
+        "final_users": arr[-1] if arr else 0
+    }
+
+def run_hpc_simulations():
+    """
+    HPC synergy BFS–free => parallel scenario scanning using Ray
+    """
+    ray.init()
+    churn_vals= np.linspace(0.01,0.2,5)
+    referral_vals= np.linspace(0.01,0.1,5)
+    tasks=[]
+    for c in churn_vals:
+        for r in referral_vals:
+            tasks.append(scenario_worker.remote(c,r))
+    out= ray.get(tasks)
+    ray.shutdown()
+    return out
+
+def find_optimal_scenario(target_metric="final_users", init_users=1000,
+                          current_churn=0.05, current_referral=0.02):
+    """
+    HPC synergy BFS–free => run HPC sim => find best scenario by final_users or success prob
+    """
+    all_scen= run_hpc_simulations()
+    best= None
+    best_val= -1
+    for sc in all_scen:
+        val= sc.get("final_users",0)
+        if val> best_val:
+            best_val= val
+            best= sc
+    return {
+        "all_scenarios": all_scen,
+        "optimal": best
+    }

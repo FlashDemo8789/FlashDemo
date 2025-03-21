@@ -1,0 +1,387 @@
+import re
+import numpy as np
+from typing import List, Dict, Any, Tuple
+
+class PitchAnalyzer:
+    """
+    HPC synergy BFS–free => pitch sentiment/structure analysis.
+    This version returns dictionaries (not custom dataclasses),
+    and uses Tuple[...] properly in type hints.
+    """
+
+    def __init__(self):
+        self.categories = [
+            "problem",
+            "solution",
+            "market",
+            "business_model",
+            "competition",
+            "traction",
+            "team",
+            "financials",
+            "ask",
+        ]
+        self.patterns = self._initialize_patterns()
+        self.sentiment_lexicon = self._load_sentiment_lexicon()
+
+    def analyze_pitch(self, pitch_text: str) -> Dict[str, Any]:
+        text = pitch_text.strip()
+        if not text or len(text) < 50:
+            return self._empty_result()
+
+        cat_text = self._categorize_text(text)
+        overall_sent = self._analyze_overall_sentiment(text)  # (score, magnitude, label)
+        cat_sents = self._analyze_category_sentiments(cat_text)  # {cat: (score, mag, label)}
+
+        # Convert cat_sents into a dict of dicts
+        cat_sents_dict: Dict[str, Any] = {}
+        for c, (sc, mag, cat_label) in cat_sents.items():
+            cat_sents_dict[c] = {
+                "score": sc,
+                "magnitude": mag,
+                "category": cat_label
+            }
+
+        key_phrases = self._extract_key_phrases(cat_text)
+        lang_metrics = self._calculate_language_metrics(text)
+        impact = self._calculate_impact_score(overall_sent, cat_sents, lang_metrics)
+        suggestions = self._generate_improvement_suggestions(cat_sents, lang_metrics, cat_text, impact)
+
+        return {
+            "overall_sentiment": {
+                "score": overall_sent[0],
+                "magnitude": overall_sent[1],
+                "category": overall_sent[2],
+            },
+            "category_sentiments": cat_sents_dict,
+            "key_phrases": key_phrases,
+            "language_metrics": lang_metrics,
+            "impact_score": impact,
+            "improvement_suggestions": suggestions,
+        }
+
+    def _empty_result(self) -> Dict[str, Any]:
+        neutral_cat = {
+            "score": 0.0,
+            "magnitude": 0.0,
+            "category": "neutral"
+        }
+        return {
+            "overall_sentiment": dict(neutral_cat),
+            "category_sentiments": {cat: dict(neutral_cat) for cat in self.categories},
+            "key_phrases": {cat: [] for cat in self.categories},
+            "language_metrics": {
+                "lexical_diversity": 0.0,
+                "avg_sentence_length": 0.0,
+                "avg_word_length": 0.0,
+                "question_ratio": 0.0,
+                "exclamation_ratio": 0.0,
+                "first_person_ratio": 0.0,
+                "quantitative_ratio": 0.0,
+                "jargon_ratio": 0.0,
+            },
+            "impact_score": 0.0,
+            "improvement_suggestions": [
+                "Pitch text missing or too short for HPC synergy BFS–free analysis."
+            ],
+        }
+
+    def _initialize_patterns(self) -> Dict[str, List[str]]:
+        return {
+            "problem": [
+                r"\b(problem|challenge|pain\s?point|frustration)\b",
+                r"\b(currently|today)\s.*\b(inefficient|broken|costly|frustrating|time-consuming)\b",
+            ],
+            "solution": [
+                r"\b(solution|platform|product|service|technology|tool)\b",
+                r"\bwe\s(provide|offer|deliver|created|built|developed)\b",
+            ],
+            "market": [
+                r"\bmarket\s?(size|opportunity|growth|tendency)\b",
+                r"\b(tam|sam|som)\b",
+            ],
+            "business_model": [
+                r"\bbusiness\smodel\b",
+                r"\b(moneti[zs]e|revenue\smodel|pricing\smodel)\b",
+            ],
+            "competition": [
+                r"\bcompetitors?|competitive\slandscape|moat|usp\b",
+                r"\bv(s|ersus)|outperform|better\sthan\b",
+            ],
+            "traction": [
+                r"\b(users|customers|clients|traction|revenue)\b",
+                r"\bgrown|increasing|expanded|signed\b",
+            ],
+            "team": [
+                r"\b(team|founder|co-founder|management|executive|leadership)\b",
+                r"\bexperience|background|expertise|previously|prior\b",
+            ],
+            "financials": [
+                r"\bfinancials|projections|p&l|income\sstatement|ebitda\b",
+                r"\brevenue|profit|burn\srate|runway|cashflow\b",
+            ],
+            "ask": [
+                r"\braising|fundraising|looking\sfor|seeking\sinvestment\b",
+                r"\binvestment|funding|capital|valuation|round\b",
+            ],
+        }
+
+    def _load_sentiment_lexicon(self) -> Dict[str, Dict[str, List[str]]]:
+        return {
+            "positive": {
+                "general": [
+                    "innovative","growing","successful","leading","unique","efficient","scalable",
+                    "proven","strong","impressive","powerful","comprehensive","robust","promising",
+                    "exciting","breakthrough","valuable","reliable","confident","outstanding"
+                ],
+                "problem": ["urgent","meaningful","significant"],
+                "solution": ["novel","breakthrough","effective","proprietary","clever","intuitive"],
+                "market": ["massive","expanding","dynamic","booming","global","underserved"],
+                "business_model": ["profitable","sustainable","high-margin","defensible"],
+                "competition": ["advantage","outperform","differentiated","superior"],
+                "traction": ["rapid","exponential","high","robust","fast","strong","impressive"],
+                "team": ["experienced","accomplished","talented","proven","diverse","visionary"],
+                "financials": ["profitable","growing","positive","healthy","improving"],
+                "ask": ["attractive","opportunity","promising","compelling"],
+            },
+            "negative": {
+                "general": [
+                    "risky","difficult","challenging","weak","slow","small","uncertain","complex",
+                    "limited","unreliable","unproven","questionable","doubtful","struggling"
+                ],
+                "problem": ["minor","niche","unclear","trivial"],
+                "solution": ["untested","unproven","complicated","buggy","confusing"],
+                "market": ["shrinking","crowded","limited","saturated","stagnant"],
+                "business_model": ["unproven","low-margin","expensive","risky","unsustainable"],
+                "competition": ["behind","similar","vulnerable","losing","threatened"],
+                "traction": ["slow","stagnant","flat","struggling","limited","disappointing"],
+                "team": ["inexperienced","junior","unproven","overwhelmed","disorganized"],
+                "financials": ["unprofitable","negative","losing","unstable","weak"],
+                "ask": ["unrealistic","excessive","risky","demanding","uncertain"],
+            },
+        }
+
+    def _categorize_text(self, pitch_text: str) -> Dict[str, List[str]]:
+        cats = {c: [] for c in self.categories}
+        paragraphs = pitch_text.split("\n")
+
+        for para in paragraphs:
+            line = para.strip()
+            if not line:
+                continue
+            cat_scores = {}
+            lower_line = line.lower()
+            for cat, patlist in self.patterns.items():
+                score = 0
+                for pat in patlist:
+                    matches = re.findall(pat, lower_line)
+                    score += len(matches)
+                cat_scores[cat] = score
+
+            best_cat = max(cat_scores, key=cat_scores.get)
+            if cat_scores[best_cat] > 0:
+                cats[best_cat].append(line)
+            else:
+                cats["solution"].append(line)
+
+        return cats
+
+    def _analyze_overall_sentiment(self, text: str) -> Tuple[float, float, str]:
+        pos_count = 0
+        neg_count = 0
+
+        # general
+        for w in self.sentiment_lexicon["positive"]["general"]:
+            pos_count += len(re.findall(r"\b" + re.escape(w) + r"\b", text.lower()))
+        for w in self.sentiment_lexicon["negative"]["general"]:
+            neg_count += len(re.findall(r"\b" + re.escape(w) + r"\b", text.lower()))
+
+        # per-category
+        for cat in self.categories:
+            if cat in self.sentiment_lexicon["positive"]:
+                for w in self.sentiment_lexicon["positive"][cat]:
+                    pos_count += 2 * len(re.findall(r"\b" + re.escape(w) + r"\b", text.lower()))
+            if cat in self.sentiment_lexicon["negative"]:
+                for w in self.sentiment_lexicon["negative"][cat]:
+                    neg_count += 2 * len(re.findall(r"\b" + re.escape(w) + r"\b", text.lower()))
+
+        total = pos_count + neg_count
+        if total > 0:
+            sentiment = (pos_count - neg_count) / total
+        else:
+            sentiment = 0.0
+
+        if sentiment > 0.1:
+            lbl = "positive"
+        elif sentiment < -0.1:
+            lbl = "negative"
+        else:
+            lbl = "neutral"
+        return (sentiment, float(total), lbl)
+
+    def _analyze_category_sentiments(self, cat_text: Dict[str, List[str]]) -> Dict[str, Tuple[float, float, str]]:
+        results = {}
+        for cat, paragraphs in cat_text.items():
+            combined = " ".join(paragraphs).lower()
+            if not combined.strip():
+                results[cat] = (0.0, 0.0, "neutral")
+                continue
+            pcount = 0
+            ncount = 0
+            # general
+            for w in self.sentiment_lexicon["positive"]["general"]:
+                pcount += len(re.findall(r"\b" + re.escape(w) + r"\b", combined))
+            for w in self.sentiment_lexicon["negative"]["general"]:
+                ncount += len(re.findall(r"\b" + re.escape(w) + r"\b", combined))
+
+            # cat-specific
+            if cat in self.sentiment_lexicon["positive"]:
+                for w in self.sentiment_lexicon["positive"][cat]:
+                    pcount += 2 * len(re.findall(r"\b" + re.escape(w) + r"\b", combined))
+            if cat in self.sentiment_lexicon["negative"]:
+                for w in self.sentiment_lexicon["negative"][cat]:
+                    ncount += 2 * len(re.findall(r"\b" + re.escape(w) + r"\b", combined))
+
+            tot = pcount + ncount
+            if tot > 0:
+                sc = (pcount - ncount) / tot
+            else:
+                sc = 0.0
+
+            if sc > 0.1:
+                ccat = "positive"
+            elif sc < -0.1:
+                ccat = "negative"
+            else:
+                ccat = "neutral"
+
+            results[cat] = (sc, float(tot), ccat)
+        return results
+
+    def _extract_key_phrases(self, cat_text: Dict[str, List[str]]) -> Dict[str, List[str]]:
+        out = {}
+        for cat, paragraphs in cat_text.items():
+            filtered = []
+            for p in paragraphs:
+                if len(p.split()) >= 5:
+                    filtered.append(p.strip())
+                if len(filtered) >= 3:
+                    break
+            out[cat] = filtered
+        return out
+
+    def _calculate_language_metrics(self, text: str) -> Dict[str, float]:
+        words = re.findall(r"\b\w+\b", text.lower())
+        total_words = len(words)
+        unique_words = set(words)
+
+        metrics: Dict[str, float] = {}
+        if total_words > 0:
+            metrics["lexical_diversity"] = len(unique_words) / total_words
+        else:
+            metrics["lexical_diversity"] = 0.0
+
+        statements = len(re.findall(r"[.!?]+[\s$]", text))
+        questions = len(re.findall(r"\?[\"\']?[\s$]", text))
+        exclaims = len(re.findall(r"\![\"\']?[\s$]", text))
+        s_count = statements + questions + exclaims
+        if s_count > 0:
+            metrics["avg_sentence_length"] = total_words / s_count
+            metrics["question_ratio"] = questions / s_count
+            metrics["exclamation_ratio"] = exclaims / s_count
+        else:
+            metrics["avg_sentence_length"] = 0.0
+            metrics["question_ratio"] = 0.0
+            metrics["exclamation_ratio"] = 0.0
+
+        w_lens = [len(w) for w in words]
+        if w_lens:
+            metrics["avg_word_length"] = sum(w_lens) / len(w_lens)
+        else:
+            metrics["avg_word_length"] = 0.0
+
+        fp_pronouns = sum(1 for w in words if w in ["we", "us", "our", "ours", "ourselves"])
+        metrics["first_person_ratio"] = fp_pronouns / total_words if total_words > 0 else 0.0
+
+        number_pattern = r"\b(\d+(?:\.\d+)?(?:[kmb%]|million|billion|trillion)?)\b"
+        nums = re.findall(number_pattern, text.lower())
+        metrics["quantitative_ratio"] = len(nums) / total_words if total_words > 0 else 0.0
+
+        jargon_terms = [
+            "roi","cac","ltv","arr","mrr","gmv","tam","sam","som","cagr","ebitda","cogs","cap","burn",
+            "runway","churn","conversion","retention","acquisition","saas","b2b","b2c","d2c","ecosystem",
+            "blockchain","ml","ai","api","disrupt","innovative","data-driven","kpi","lead-gen"
+        ]
+        j_count = sum(1 for w in words if w in jargon_terms)
+        metrics["jargon_ratio"] = j_count / total_words if total_words > 0 else 0.0
+
+        return metrics
+
+    def _calculate_impact_score(
+        self,
+        overall_sent: Tuple[float, float, str],
+        cat_sents: Dict[str, Tuple[float, float, str]],
+        lang_metrics: Dict[str, float],
+    ) -> float:
+        score_val, mag_val, lbl = overall_sent
+        base = 50.0
+
+        if score_val > 0:
+            base += score_val * 20
+        else:
+            base += score_val * 10
+
+        coverage_count = sum(1 for c, par in cat_sents.items() if par[1] > 0)
+        coverage_factor = coverage_count / len(self.categories)
+        base += coverage_factor * 10
+
+        lexdiv = lang_metrics.get("lexical_diversity", 0)
+        if lexdiv > 0.5:
+            base += 5
+        elif lexdiv > 0.3:
+            base += 3
+
+        qrat = lang_metrics.get("quantitative_ratio", 0)
+        if qrat > 0.1:
+            base += 8
+        elif qrat > 0.05:
+            base += 4
+
+        if base < 0:
+            base = 0
+        if base > 100:
+            base = 100
+        return base
+
+    def _generate_improvement_suggestions(
+        self,
+        cat_sents: Dict[str, Tuple[float, float, str]],
+        lang_metrics: Dict[str, float],
+        cat_text: Dict[str, List[str]],
+        impact: float
+    ) -> List[str]:
+        recs: List[str] = []
+        must_have = ["problem", "solution", "market", "team", "traction"]
+        for cat in must_have:
+            sc, mg, lb = cat_sents.get(cat, (0, 0, "neutral"))
+            if mg < 5:
+                recs.append(f"Add or expand a '{cat}' section => HPC synergy BFS–free clarity.")
+
+        for cat, (sc, mg, lb) in cat_sents.items():
+            if lb == "negative" and cat in ["solution", "team", "traction"]:
+                recs.append(f"Make {cat} explanation more positive => HPC synergy BFS–free confidence building.")
+
+        qrat = lang_metrics.get("quantitative_ratio", 0)
+        if qrat < 0.05:
+            recs.append("Add more numeric data => HPC synergy BFS–free credibility & proof points.")
+
+        if lang_metrics.get("lexical_diversity", 0) < 0.3:
+            recs.append("Use more varied vocabulary => HPC synergy BFS–free stronger pitch impressions.")
+
+        if not recs:
+            if impact < 50:
+                recs.append("Refine HPC synergy BFS–free success stories => pitch clarity & positivity need improvement.")
+            else:
+                recs.append("Pitch is decent => consider fine-tuning metrics & narrative for maximum impact.")
+
+        return recs[:5]
