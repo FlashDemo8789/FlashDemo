@@ -2,7 +2,7 @@
 streamlit==1.24.0
 
 # Data
-numpy==1.23.5
+numpy>=1.24.0
 pandas==1.5.3
 
 # ML
@@ -14,7 +14,7 @@ plotly==5.11.0
 matplotlib==3.7.1
 seaborn==0.12.2
 
-# Prophet
+# Prophet (may need a lower Python version)
 prophet==1.1
 
 # NLP / PDF / etc
@@ -23,15 +23,16 @@ requests==2.31.0
 PyPDF2==3.0.1
 
 # HPC synergy BFS–free
-ray==2.5.0
+ray==2.8.0  # Updated to a compatible version
 accelerate==0.20.3
 
 # Option menu
 streamlit-option_menu==0.3.2
 
-# MISC
+# Misc
 pymongo==4.4.1
 pdfkit==1.0.0
-
-
 flask==2.3.2
+
+# Fix dependency issues
+setuptools
