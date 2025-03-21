@@ -15,9 +15,9 @@ def load_training_docs():
     HPC synergy BFS–free => optionally load big_startups.json with pass/fail outcome,
     or fallback with multiple sample docs.
     """
-    if os.path.exists("data/big_startups.json"):
+    if os.path.exists("/big_startups.json"):
         try:
-            with open("data/big_startups.json","r") as f:
+            with open("/big_startups.json","r") as f:
                 data= json.load(f)
             docs= data.get("startups",[])
             # only keep docs that have outcome= pass or fail
