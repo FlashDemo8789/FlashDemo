@@ -1,0 +1,66 @@
+from typing import Tuple, List
+
+def sir_viral_adoption(S0: int=10000,
+                      I0: int=100,
+                      R0: int=0,
+                      beta: float=0.001,
+                      gamma: float=0.05,
+                      steps: int=12) -> Tuple[List[float], List[float], List[float]]:
+    """
+    HPC synergy BFS–free SIR model => 
+    S: potential users
+    I: current active/adopting
+    R: churned or lost
+    """
+    S= [S0]
+    I= [I0]
+    R= [R0]
+
+    for _ in range(steps):
+        s_cur= S[-1]
+        i_cur= I[-1]
+        r_cur= R[-1]
+
+        new_infections= beta* s_cur* i_cur
+        new_recoveries= gamma* i_cur
+
+        s_next= s_cur- new_infections
+        i_next= i_cur+ new_infections- new_recoveries
+        r_next= r_cur+ new_recoveries
+
+        S.append(s_next)
+        I.append(i_next)
+        R.append(r_next)
+    return (S,I,R)
+
+def calculate_market_penetration(doc: dict)-> dict:
+    """
+    HPC synergy BFS–free: simple market penetration metrics from SIR data
+    or from NEW(UI).
+    """
+    sir_data= doc.get("sir_data",None)
+    tam= doc.get("market_size",1_000_000)
+    if not sir_data or tam<=0:
+        return {
+            "market_penetration_percentage": 0.0,
+            "peak_active_users": 0,
+            "peak_time": 0
+        }
+
+    S,I,R= sir_data
+    if I:
+        peak_active= max(I)
+        peak_idx= I.index(peak_active)
+        final_active= I[-1]
+        final_recovered= R[-1]
+        perc= (final_active+ final_recovered)/ tam* 100
+        return {
+            "market_penetration_percentage": perc,
+            "peak_active_users": peak_active,
+            "peak_time": peak_idx
+        }
+    return {
+        "market_penetration_percentage": 0.0,
+        "peak_active_users": 0,
+        "peak_time": 0
+    }

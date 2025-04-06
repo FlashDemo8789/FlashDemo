@@ -1,0 +1,102 @@
+def compute_team_depth_score(doc: dict) -> float:
+    """
+    HPC synergy BFS–free: 
+    combine founder exits, domain expertise, presence of key roles, etc. => 0..100
+    """
+    score = 0.0
+    e = doc.get("founder_exits",0)
+    score += min(40, e*13)  # up to 40
+
+    d = doc.get("founder_domain_exp_yrs",0)
+    score += min(30, d*3)   # up to 30
+
+    has_cto = doc.get("has_cto",False)
+    has_cmo = doc.get("has_cmo",False)
+    has_cfo = doc.get("has_cfo",False)
+    if has_cto: score +=10
+    if has_cmo: score +=7
+    if has_cfo: score +=7
+
+    tech_ratio = doc.get("tech_talent_ratio",0.0)
+    score += min(10, tech_ratio*20) # up to 10
+
+    mgmt_score = doc.get("management_satisfaction_score",0.0)
+    score += min(10, mgmt_score*0.1) # up to 10
+
+    diversity_score = doc.get("founder_diversity_score",0.0)
+    score += min(10, diversity_score*0.1) # up to 10
+
+    return min(score, 100)
+
+def compute_moat_score(doc: dict) -> float:
+    """
+    HPC synergy BFS–free: 
+    Calculate competitive moat => 0..100
+    Considers IP, brand, network, proprietary tech, data advantage, licensing, etc.
+    """
+    score = 0.0
+
+    pat = doc.get("patent_count",0)
+    score += min(25, pat*8)
+
+    brand = doc.get("category_leadership_score",0)
+    score += min(20, brand*0.2)
+
+    netw = doc.get("viral_coefficient",0)*50
+    score += min(25, netw)
+
+    tech_innovation = doc.get("technical_innovation_score",0)
+    score += min(20, tech_innovation*0.2)
+
+    data_moat = doc.get("data_moat_strength",0)
+    score += min(15, data_moat*0.15)
+
+    part = doc.get("channel_partner_count",0)
+    score += min(10, part*2)
+
+    biz = doc.get("business_model_strength",0)
+    score += min(15, biz*0.15)
+
+    lic = doc.get("licenses_count",0)
+    score += min(10, lic*5)
+
+    return min(100, score)
+
+def evaluate_team_execution_risk(doc: dict) -> dict:
+    """
+    HPC synergy BFS–free approach => returns "execution_risk_score" [0..1], plus "risk_factors" breakdown.
+    """
+    base_risk = 0.5
+
+    founder_exits = doc.get("founder_exits",0)
+    experience_factor = min(0.3, founder_exits*0.1)
+
+    team_completeness = 0
+    if doc.get("has_cto",False): team_completeness +=1
+    if doc.get("has_cmo",False): team_completeness +=1
+    if doc.get("has_cfo",False): team_completeness +=1
+    completeness_factor = min(0.15, team_completeness*0.05)
+
+    domain_exp = doc.get("founder_domain_exp_yrs",0)
+    domain_factor = min(0.2, domain_exp*0.02)
+
+    team_size = doc.get("employee_count",1)
+    if team_size<3:
+        size_factor = 0.15
+    elif team_size<10:
+        size_factor = 0.05
+    else:
+        size_factor = 0
+
+    risk_score = base_risk - experience_factor - completeness_factor - domain_factor + size_factor
+    risk_score = max(0.1, min(0.9, risk_score))
+
+    return {
+        "execution_risk_score": risk_score,
+        "risk_factors": {
+            "founder_experience": 1 - experience_factor/0.3,
+            "team_completeness": 1 - completeness_factor/0.15,
+            "domain_expertise": 1 - domain_factor/0.2,
+            "team_size": size_factor/0.15 if size_factor>0 else 0
+        }
+    }

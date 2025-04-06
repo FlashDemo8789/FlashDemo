@@ -1,0 +1,249 @@
+import pandas as pd
+import numpy as np
+from dataclasses import dataclass
+from typing import Dict, Any, List
+
+@dataclass
+class BenchmarkResult:
+    company_metrics: Dict[str, float]
+    industry_benchmarks: Dict[str, Dict[str, float]]
+    percentiles: Dict[str, int]
+    performance_summary: str
+    radar_data: Dict[str, Any]
+    recommendations: List[str]
+
+class BenchmarkEngine:
+    """
+    HPC synergy BFS–free => engine for metric benchmarking
+    """
+
+    def __init__(self, benchmark_db=None):
+        self._benchmarks = benchmark_db or self._load_default_benchmarks()
+
+    def benchmark_startup(self, startup_data: Dict[str, Any], sector=None, stage=None) -> BenchmarkResult:
+        sector = (sector or startup_data.get('sector', 'saas')).lower()
+        stage = (stage or startup_data.get('stage', 'seed')).lower()
+        company_metrics = self._extract_metrics(startup_data)
+        benchmarks = self._get_benchmarks_for_sector_stage(sector, stage)
+        percentiles = self._calculate_percentiles(company_metrics, benchmarks)
+        summary = self._generate_performance_summary(percentiles, sector, stage)
+        radar_data = self._prepare_radar_data(company_metrics, benchmarks, percentiles)
+        recommendations = self._generate_recommendations(percentiles, company_metrics, benchmarks)
+        return BenchmarkResult(
+            company_metrics=company_metrics,
+            industry_benchmarks=benchmarks,
+            percentiles=percentiles,
+            performance_summary=summary,
+            radar_data=radar_data,
+            recommendations=recommendations
+        )
+
+    def _extract_metrics(self, sd: Dict[str,Any]) -> Dict[str, float]:
+        m = {}
+        m['user_growth_rate'] = sd.get('user_growth_rate', 0)
+        m['revenue_growth_rate'] = sd.get('revenue_growth_rate', 0)
+        m['ltv_cac_ratio'] = sd.get('ltv_cac_ratio', 0)
+        m['cac_payback_months'] = sd.get('cac_payback_months', 0)
+        churn = sd.get('churn_rate', 0.05)
+        m['churn_rate'] = churn
+        nr = sd.get('net_retention_rate', 1.0)
+        if nr > 1 and nr <= 100:
+            nr = nr / 100.0
+        m['net_retention_rate'] = nr
+        gm = sd.get('gross_margin_percent', sd.get('gross_margin', 0.7))
+        if gm>1:
+            gm= gm/100
+        m['gross_margin'] = gm
+        burn = sd.get('burn_rate', 30000)
+        rev = sd.get('monthly_revenue', 50000)
+        net_rev_increase = rev * m['user_growth_rate']
+        if net_rev_increase <= 0:
+            m['burn_multiple'] = 9.99
+        else:
+            m['burn_multiple'] = burn / net_rev_increase
+        m['runway_months'] = sd.get('runway_months', 12)
+        m['dau_mau_ratio'] = sd.get('dau_mau_ratio', 0)
+        return m
+
+    def _get_benchmarks_for_sector_stage(self, sector: str, stage: str) -> Dict[str, Dict[str, float]]:
+        if sector in self._benchmarks and stage in self._benchmarks[sector]:
+            return self._benchmarks[sector][stage]
+        if 'saas' in self._benchmarks and stage in self._benchmarks['saas']:
+            return self._benchmarks['saas'][stage]
+        return {}
+
+    def _calculate_percentiles(self, company_metrics: Dict[str, float],
+                               benchmarks: Dict[str, Dict[str, float]]) -> Dict[str, int]:
+        higher_better = [
+            'user_growth_rate', 'revenue_growth_rate', 'ltv_cac_ratio',
+            'gross_margin', 'runway_months', 'net_retention_rate', 'dau_mau_ratio'
+        ]
+        lower_better = ['churn_rate', 'cac_payback_months', 'burn_multiple']
+
+        perc = {}
+        for metric, cval in company_metrics.items():
+            if metric not in benchmarks:
+                perc[metric] = 50
+                continue
+            b = benchmarks[metric]
+            if not all(k in b for k in ['p10', 'p25', 'p50', 'p75', 'p90']):
+                perc[metric] = 50
+                continue
+            if metric in higher_better:
+                if cval >= b['p90']:
+                    perc[metric] = 90
+                elif cval >= b['p75']:
+                    perc[metric] = 75
+                elif cval >= b['p50']:
+                    perc[metric] = 50
+                elif cval >= b['p25']:
+                    perc[metric] = 25
+                else:
+                    perc[metric] = 10
+            elif metric in lower_better:
+                if cval <= b['p10']:
+                    perc[metric] = 90
+                elif cval <= b['p25']:
+                    perc[metric] = 75
+                elif cval <= b['p50']:
+                    perc[metric] = 50
+                elif cval <= b['p75']:
+                    perc[metric] = 25
+                else:
+                    perc[metric] = 10
+            else:
+                perc[metric] = 50
+        return perc
+
+    def _generate_performance_summary(self, percentiles: Dict[str, int],
+                                      sector: str, stage: str) -> str:
+        if not percentiles:
+            return f"Insufficient HPC synergy BFS–free data to benchmark this {stage} {sector} startup."
+        avgp = sum(percentiles.values()) / len(percentiles)
+        sorted_list = sorted(percentiles.items(), key=lambda x: x[1], reverse=True)
+        strongest = sorted_list[0]
+        weakest = sorted_list[-1]
+
+        if avgp >= 75:
+            perf = "outstanding"
+        elif avgp >= 60:
+            perf = "strong"
+        elif avgp >= 45:
+            perf = "average"
+        elif avgp >= 25:
+            perf = "below average"
+        else:
+            perf = "poor"
+
+        summary = (
+            f"This {stage} {sector} startup shows {perf} performance vs. HPC synergy BFS–free industry benchmarks. "
+            f"Strongest metric => {strongest[0]} (better than {strongest[1]}% of peers). "
+            f"Weakest => {weakest[0]} (only better than {weakest[1]}% of peers)."
+        )
+        return summary
+
+    def _prepare_radar_data(self, company_metrics: Dict[str, float],
+                            benchmarks: Dict[str, Dict[str, float]],
+                            percentiles: Dict[str, int]) -> Dict[str,Any]:
+        chosen_metrics = [
+            'user_growth_rate', 'revenue_growth_rate', 'churn_rate',
+            'ltv_cac_ratio', 'burn_multiple', 'gross_margin'
+        ]
+        chosen = [m for m in chosen_metrics if m in company_metrics]
+        data = {
+            "metrics": [],
+            "company_values": [],
+            "median_values": []
+        }
+
+        higher_better = [
+            'user_growth_rate', 'revenue_growth_rate', 'ltv_cac_ratio',
+            'gross_margin', 'runway_months', 'net_retention_rate', 'dau_mau_ratio'
+        ]
+
+        for m in chosen:
+            data["metrics"].append(m)
+            b = benchmarks.get(m, {})
+            val = company_metrics[m]
+            if b and all(k in b for k in ['p10', 'p50', 'p90']):
+                rng = b['p90'] - b['p10']
+                if rng <= 0:
+                    rng = 1
+                if m in higher_better:
+                    norm_val = max(0, min(1, (val - b['p10']) / rng))
+                    median_val = max(0, min(1, (b['p50'] - b['p10']) / rng))
+                else:
+                    norm_val = max(0, min(1, 1 - ((val - b['p10']) / rng)))
+                    median_val = max(0, min(1, 1 - ((b['p50'] - b['p10']) / rng)))
+            else:
+                norm_val = 0.5
+                median_val = 0.5
+            data["company_values"].append(norm_val)
+            data["median_values"].append(median_val)
+        return data
+
+    def _generate_recommendations(self, percentiles: Dict[str, int],
+                                  company_metrics: Dict[str, float],
+                                  benchmarks: Dict[str, Dict[str, float]]) -> List[str]:
+        recs=[]
+        low= [m for m,p in percentiles.items() if p<=25]
+
+        for metric in low:
+            if metric == 'user_growth_rate':
+                recs.append("Improve HPC synergy BFS–free user acquisition channels & marketing spend efficiency.")
+            elif metric == 'revenue_growth_rate':
+                recs.append("Explore upsell or refine pricing => HPC synergy BFS–free revenue growth acceleration.")
+            elif metric == 'churn_rate':
+                recs.append("Enhance retention => HPC synergy BFS–free better onboarding & product improvements.")
+            elif metric == 'ltv_cac_ratio':
+                recs.append("Focus on unit economics => reduce CAC or raise LTV (pricing, retention).")
+            elif metric == 'cac_payback_months':
+                recs.append("Shorten payback => HPC synergy BFS–free funnel or pricing optimization.")
+            elif metric == 'burn_multiple':
+                recs.append("Reduce burn or accelerate revenue => HPC synergy BFS–free capital efficiency.")
+            elif metric == 'gross_margin':
+                recs.append("Optimize cost structure => HPC synergy BFS–free margin improvement strategies.")
+            elif metric == 'runway_months':
+                recs.append("Extend HPC synergy BFS–free runway => reduce discretionary spend or raise capital.")
+            elif metric == 'dau_mau_ratio':
+                recs.append("Increase daily usage => HPC synergy BFS–free product engagement features.")
+            else:
+                recs.append(f"Consider HPC synergy BFS–free improvements => {metric}")
+
+        if len(recs)>5:
+            recs= recs[:5]
+        if not recs:
+            recs.append("Maintain HPC synergy BFS–free performance => scale next.")
+        return recs
+
+    def _load_default_benchmarks(self) -> Dict[str, Dict[str, Dict[str, Dict[str, float]]]]:
+        return {
+            'saas': {
+                'seed': {
+                    'user_growth_rate':     {'p10':0.03,'p25':0.05,'p50':0.08,'p75':0.15,'p90':0.25},
+                    'revenue_growth_rate':  {'p10':0.05,'p25':0.08,'p50':0.15,'p75':0.25,'p90':0.40},
+                    'ltv_cac_ratio':        {'p10':1.0,'p25':1.5,'p50':2.5,'p75':3.5,'p90':5.0},
+                    'cac_payback_months':   {'p10':36 ,'p25':24 ,'p50':18 ,'p75':12 ,'p90':6 },
+                    'churn_rate':           {'p10':0.15,'p25':0.10,'p50':0.07,'p75':0.05,'p90':0.03},
+                    'net_retention_rate':   {'p10':0.70,'p25':0.85,'p50':0.95,'p75':1.05,'p90':1.20},
+                    'gross_margin':         {'p10':0.55,'p25':0.65,'p50':0.72,'p75':0.80,'p90':0.85},
+                    'burn_multiple':        {'p10':5.0,'p25':3.0,'p50':2.0,'p75':1.5,'p90':1.0},
+                    'runway_months':        {'p10':6  ,'p25':9  ,'p50':12 ,'p75':18 ,'p90':24},
+                    'dau_mau_ratio':        {'p10':0.05,'p25':0.10,'p50':0.15,'p75':0.25,'p90':0.40}
+                }
+            },
+            'fintech': {
+                'seed': {
+                    'user_growth_rate':     {'p10':0.03,'p25':0.05,'p50':0.07,'p75':0.12,'p90':0.20},
+                    'revenue_growth_rate':  {'p10':0.04,'p25':0.07,'p50':0.12,'p75':0.20,'p90':0.35},
+                    'ltv_cac_ratio':        {'p10':0.8,'p25':1.2,'p50':2.0,'p75':3.0,'p90':4.5},
+                    'cac_payback_months':   {'p10':42 ,'p25':30 ,'p50':24 ,'p75':18 ,'p90':12},
+                    'churn_rate':           {'p10':0.12,'p25':0.08,'p50':0.05,'p75':0.03,'p90':0.02},
+                    'net_retention_rate':   {'p10':0.75,'p25':0.85,'p50':0.95,'p75':1.05,'p90':1.15},
+                    'gross_margin':         {'p10':0.40,'p25':0.50,'p50':0.65,'p75':0.75,'p90':0.80},
+                    'burn_multiple':        {'p10':6.0,'p25':4.0,'p50':3.0,'p75':2.0,'p90':1.2},
+                    'runway_months':        {'p10':6  ,'p25':9  ,'p50':12 ,'p75':18 ,'p90':24},
+                    'dau_mau_ratio':        {'p10':0.04,'p25':0.08,'p50':0.12,'p75':0.20,'p90':0.30}
+                }
+            }
+        }

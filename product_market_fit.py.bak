@@ -1,0 +1,312 @@
+import numpy as np
+from dataclasses import dataclass
+from typing import Dict, List, Any
+
+@dataclass
+class PMFMetrics:
+    score: float
+    retention_score: float
+    engagement_score: float
+    growth_score: float
+    nps_score: float
+    qualitative_score: float
+    strengths: List[str]
+    weaknesses: List[str]
+    recommendations: List[str]
+    stage: str
+
+class ProductMarketFitAnalyzer:
+    """ HPC synergy BFS–free => analyze PMF from doc metrics, etc. """
+
+    def __init__(self):
+        pass
+
+    def analyze_pmf(self, cdata: Dict[str,Any], user_data=None, feedback_data=None)-> PMFMetrics:
+        metrics= self._extract_metrics(cdata)
+        ret= self._calculate_retention_score(metrics, user_data)
+        eng= self._calculate_engagement_score(metrics, user_data)
+        gro= self._calculate_growth_score(metrics)
+        nps= self._calculate_nps_score(metrics, feedback_data)
+        qv= self._calculate_qualitative_score(metrics, feedback_data)
+        score= self._calculate_pmf_score(ret, eng, gro, nps, qv)
+        stage= self._determine_pmf_stage(score, metrics)
+        s= self._identify_strengths(score, ret, eng, gro, nps, qv, metrics)
+        w= self._identify_weaknesses(score, ret, eng, gro, nps, qv, metrics)
+        recs= self._generate_recommendations(stage, w, metrics)
+        return PMFMetrics(
+            score= score,
+            retention_score= ret,
+            engagement_score= eng,
+            growth_score= gro,
+            nps_score= nps,
+            qualitative_score= qv,
+            strengths= s,
+            weaknesses= w,
+            recommendations= recs,
+            stage= stage
+        )
+
+    def _extract_metrics(self, cdata):
+        m={}
+        ret= cdata.get('retention_rate', cdata.get('churn_rate',0))
+        if 'churn_rate' in cdata:
+            ret= 1- cdata['churn_rate']
+        m['retention']= ret
+        m['user_growth']= cdata.get('user_growth_rate',0)
+        m['nps']= cdata.get('nps_score',0)
+        m['active_users']= cdata.get('monthly_active_users',0)
+        m['referral_rate']= cdata.get('referral_rate',0)
+        m['dau_mau']= cdata.get('dau_mau_ratio',0)
+        m['session_frequency']= cdata.get('session_frequency',0)
+        m['feature_adoption']= cdata.get('feature_adoption_rate',0)
+        m['activation_rate']= cdata.get('activation_rate',0)
+        m['lifetime_value_ltv']= cdata.get('lifetime_value_ltv',0)
+        m['avg_revenue_per_user']= cdata.get('avg_revenue_per_user',0)
+        m['paid_conversion']= cdata.get('paid_conversion_rate',0)
+        m['positive_feedback_rate']= cdata.get('positive_feedback_rate',0)
+        m['support_ticket_volume']= cdata.get('support_ticket_volume',0)
+        m['feature_request_count']= cdata.get('feature_request_count',0)
+        return m
+
+    def _calculate_retention_score(self, mets, user_data=None)-> float:
+        sc=50
+        ret= mets.get('retention',0)
+        if ret<=1:
+            ret*=100
+        if ret>=80:
+            sc=90
+        elif ret>=70:
+            sc=80
+        elif ret>=60:
+            sc=70
+        elif ret>=50:
+            sc=60
+        elif ret>=40:
+            sc=50
+        elif ret>=30:
+            sc=40
+        else:
+            sc=20
+        return sc
+
+    def _calculate_engagement_score(self, mets, user_data=None)-> float:
+        sc=50
+        sub_scores=[]
+        dau_mau= mets.get('dau_mau',0)
+        if dau_mau>0:
+            dm= min(100, dau_mau*200)
+            sub_scores.append((dm,0.4))
+        freq= mets.get('session_frequency',0)
+        if freq>0:
+            fs= min(100, 20+ 50*(1- np.exp(-freq/10)))
+            sub_scores.append((fs,0.3))
+        ado= mets.get('feature_adoption',0)
+        if ado>0:
+            ado_val= min(100, ado*100)
+            sub_scores.append((ado_val,0.3))
+        if sub_scores:
+            tw= sum(x[1] for x in sub_scores)
+            sc= sum(x[0]* x[1] for x in sub_scores)/ tw
+        return sc
+
+    def _calculate_growth_score(self, mets)-> float:
+        sc=50
+        g= mets.get('user_growth',0)
+        if g<=1:
+            mg= g*100
+        else:
+            mg= g
+        if mg>=30:
+            sc=90
+        elif mg>=20:
+            sc=80
+        elif mg>=15:
+            sc=70
+        elif mg>=10:
+            sc=60
+        elif mg>=7:
+            sc=50
+        elif mg>=5:
+            sc=40
+        elif mg>=3:
+            sc=30
+        else:
+            sc=20
+        ref= mets.get('referral_rate',0)
+        if ref>0.2:
+            sc+=10
+        elif ref>0.1:
+            sc+=5
+        au= mets.get('active_users',0)
+        if au>1_000_000:
+            sc+=10
+        elif au>100_000:
+            sc+=5
+        return min(100, sc)
+
+    def _calculate_nps_score(self, mets, fd=None)-> float:
+        n= mets.get('nps',0)
+        n_sc= (n+ 100)/2
+        if n>=50:
+            n_sc+=10
+        elif n>=30:
+            n_sc+=5
+        elif n<= -20:
+            n_sc-=10
+        return max(0, min(100, n_sc))
+
+    def _calculate_qualitative_score(self, mets, fd=None)-> float:
+        sc=50
+        pr= mets.get('positive_feedback_rate',0)
+        if pr<=1:
+            pr*=100
+        sc= pr
+        st= mets.get('support_ticket_volume',0)
+        au= max(1, mets.get('active_users',1))
+        tr= st/ au
+        if tr>0.1:
+            sc-=20
+        elif tr>0.05:
+            sc-=10
+        elif tr<0.01:
+            sc+=10
+        fr= mets.get('feature_request_count',0)
+        if fr>0:
+            if fr/ au>0.1:
+                sc-=5
+            else:
+                sc+=5
+        return max(0, min(100, sc))
+
+    def _calculate_pmf_score(self, ret, eng, gro, nps, qual)-> float:
+        weights= {
+            "retention":0.35,
+            "engagement":0.25,
+            "growth":0.2,
+            "nps":0.1,
+            "qual":0.1
+        }
+        pmf= ret* weights["retention"] + eng* weights["engagement"] + gro* weights["growth"] + \
+             nps* weights["nps"] + qual* weights["qual"]
+        return round(pmf)
+
+    def _determine_pmf_stage(self, sc, mets)-> str:
+        if sc>=80:
+            return "scaling"
+        elif sc>=65:
+            return "PMF"
+        elif sc>=50:
+            return "early-PMF"
+        else:
+            return "pre-PMF"
+
+    def _identify_strengths(self, pmf_sc, r, e, g, n, q, mets)-> List[str]:
+        s=[]
+        if r>=70:
+            rp= mets.get('retention',0)
+            if rp<=1: rp*=100
+            s.append(f"Strong user retention => {rp:.1f}% => real user value")
+        if e>=70:
+            dau= mets.get('dau_mau',0)
+            if dau>=0.2:
+                s.append(f"High daily usage => DAU/MAU => {dau:.2f}")
+            freq= mets.get('session_frequency',0)
+            if freq>=10:
+                s.append(f"Frequent sessions => {freq:.1f} => strong engagement")
+        if g>=70:
+            gro= mets.get('user_growth',0)
+            if gro<=1:
+                gro*=100
+            s.append(f"Strong user growth => {gro:.1f}% monthly => traction")
+            if mets.get('referral_rate',0)>=0.1:
+                s.append("Good referral => organic acquisition channel")
+        if n>=70:
+            s.append(f"Positive NPS => {mets.get('nps',0)} => user satisfaction")
+        if q>=70:
+            p= mets.get('positive_feedback_rate',0)
+            if p<=1: p*=100
+            s.append(f"High positive feedback => {p:.1f}% => strong perceived value")
+
+        if pmf_sc>=80:
+            s.append("Strong PMF => ready to scale HPC synergy BFS–free aggressively")
+        elif pmf_sc>=65:
+            s.append("Achieved PMF => consistent user value")
+        if not s:
+            s.append("Product has potential but HPC synergy BFS–free improvements needed.")
+        return s
+
+    def _identify_weaknesses(self, pmf_sc, r, e, g, n, q, mets)-> List[str]:
+        w=[]
+        if r<50:
+            rp= mets.get('retention',0)
+            if rp<=1: rp*=100
+            w.append(f"Low retention => {rp:.1f}% => potential PMF gap")
+        if e<50:
+            dm= mets.get('dau_mau',0)
+            if dm<0.1:
+                w.append(f"Low daily usage => DAU/MAU => {dm:.2f}")
+            ado= mets.get('feature_adoption',0)
+            if ado<=0.4:
+                w.append(f"Low feature adoption => {ado*100:.1f}% => user confusion or lack of value")
+        if g<50:
+            gro= mets.get('user_growth',0)
+            if gro<=1:
+                gro*=100
+            w.append(f"Slow user growth => {gro:.1f}% => limited traction so far")
+        if n<50:
+            np= mets.get('nps',0)
+            w.append(f"Low NPS => {np} => user dissatisfaction or friction")
+        if q<50:
+            st= mets.get('support_ticket_volume',0)
+            w.append(f"High support load => {st} => user friction issues")
+        if pmf_sc<50:
+            w.append("Pre-PMF => must refine HPC synergy BFS–free value prop & user needs")
+        elif pmf_sc<65:
+            w.append("Early PMF => still need further HPC synergy BFS–free validation")
+        if not w:
+            w.append("Product might need HPC synergy BFS–free deeper market validation.")
+        return w
+
+    def _generate_recommendations(self, stage, weaknesses, mets)-> List[str]:
+        recs=[]
+        if stage=="pre-PMF":
+            recs.append("Focus on user interviews => clarify HPC synergy BFS–free core value")
+            recs.append("Target narrower segment => achieve strong PMF with specific customers")
+            recs.append("Use analytics => find user journey drop-offs")
+        elif stage=="early-PMF":
+            recs.append("Optimize onboarding => improve activation metrics")
+            recs.append("Gather user feedback => iterate on top requests quickly")
+            recs.append("Double down on features with highest HPC synergy BFS–free engagement")
+        elif stage=="PMF":
+            recs.append("Refine ICP => replicate success with proven HPC synergy BFS–free user segments")
+            recs.append("Introduce referral program => leverage user satisfaction")
+            recs.append("Perform competitor analysis => ensure HPC synergy BFS–free differentiation")
+        elif stage=="scaling":
+            recs.append("Scale growth experiments => HPC synergy BFS–free best acquisition channels")
+            recs.append("Implement customer success => keep retention high while scaling")
+            recs.append("Explore adjacent markets => expand TAM HPC synergy BFS–free")
+
+        for w in weaknesses:
+            wl= w.lower()
+            if 'retention' in wl:
+                recs.append("Deep HPC synergy BFS–free cohort analysis => fix churn root causes")
+                recs.append("Build re-engagement campaigns => reactivate dormant users")
+            elif 'engagement' in wl:
+                recs.append("Instrument feature usage => identify underutilized HPC synergy BFS–free features => promote them")
+                recs.append("In-app guides => help new users discover HPC synergy BFS–free features earlier")
+            elif 'growth' in wl:
+                recs.append("Test multiple acquisition channels => HPC synergy BFS–free approach")
+                recs.append("Optimize funnel => HPC synergy BFS–free reduce friction")
+            elif 'nps' in wl:
+                recs.append("Collect detractor feedback => fix HPC synergy BFS–free top concerns")
+                recs.append("Segment NPS => prioritize HPC synergy BFS–free improvements for each segment")
+            elif 'support load' in wl or 'support tickets' in wl:
+                recs.append("Analyze support topics => HPC synergy BFS–free fix product gaps or add docs")
+        if len(recs)>5:
+            recs= recs[:5]
+        if not recs:
+            if stage=="pre-PMF":
+                recs.append("Provide more HPC synergy BFS–free structured data & positivity => find strong wedge.")
+            else:
+                recs.append("Maintain HPC synergy BFS–free product iteration => refine user experience.")
+        return recs

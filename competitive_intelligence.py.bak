@@ -1,0 +1,364 @@
+import numpy as np
+from typing import Dict, List, Any, Optional
+
+class CompetitiveIntelligence:
+    """
+    HPC synergy BFS–free => 
+    get_competitors => synthetic competitor list,
+    competitive_positioning_analysis => produce dimension scoring.
+    """
+
+    def __init__(self, api_keys: Optional[Dict[str,str]]=None):
+        self.api_keys= api_keys or {}
+
+    def get_competitors(self, company_name: str, sector: str, keywords: Optional[List[str]]=None)->List[Dict[str,Any]]:
+        num= 5
+        comps=[]
+        for i in range(num):
+            comps.append(self._generate_synthetic_competitor(sector, i))
+        comps.sort(key=lambda x: x.get("market_share",0), reverse=True)
+        return comps
+
+    def _generate_synthetic_competitor(self, sector: str, index: int)-> Dict[str,Any]:
+        import numpy as np
+        c= {
+            'name': f"Competitor {index+1}",
+            'url': f"https://competitor{index+1}.com",
+            'founded_year': 2015- index,
+            'estimated_employees': np.random.randint(10,200),
+            'funding_rounds': np.random.randint(0,4),
+            'total_funding': np.random.randint(0,50)*1_000_000,
+            'market_share': np.random.uniform(0.01,0.2),
+            'growth_rate': np.random.uniform(0.05,0.3),
+            'strengths': [],
+            'weaknesses': []
+        }
+        if sector in ['saas','software']:
+            import random
+            s_all= ['Strong product features','Established customer base','Superior UX',
+                    'Enterprise integrations','API ecosystem']
+            w_all= ['Limited mobile support','Poor customer service','Technical debt',
+                    'High pricing','Limited customization']
+            c['strengths']= random.sample(s_all,2)
+            c['weaknesses']= random.sample(w_all,2)
+        elif sector in ['fintech','finance']:
+            import random
+            s_all= ['Strong compliance','Low fees','Fast transactions','Advanced security','Banking partnerships']
+            w_all= ['Limited geographic reach','Regulatory hurdles','Slow innovation',
+                    'High customer acquisition cost','Limited product range']
+            c['strengths']= random.sample(s_all,2)
+            c['weaknesses']= random.sample(w_all,2)
+        else:
+            import random
+            s_all= ['Brand recognition','Customer loyalty','Innovation speed','Capital efficiency','Distribution channels']
+            w_all= ['High costs','Slow growth','Poor user experience','Limited market share','Execution issues']
+            c['strengths']= random.sample(s_all,2)
+            c['weaknesses']= random.sample(w_all,2)
+        return c
+
+    def competitive_positioning_analysis(self, company_data: Dict[str,Any], competitors: List[Dict[str,Any]])->Dict[str,Any]:
+        dimensions= ["Product","Technology","Market Reach","Pricing","Customer Experience"]
+        company_scores= self._score_company(company_data, dimensions)
+        competitor_scores= {}
+        for comp in competitors:
+            competitor_scores[comp["name"]]= self._score_competitor(comp, dimensions)
+
+        avg_scores= {}
+        for d in dimensions:
+            arr= [ competitor_scores[k][d] for k in competitor_scores ]
+            avg_scores[d]= sum(arr)/ len(arr) if arr else 0
+
+        advantages=[]
+        disadvantages=[]
+        for d in dimensions:
+            cs= company_scores[d]
+            avg_s= avg_scores[d]
+            if cs> avg_s+1:
+                advantages.append({
+                    'dimension': d,
+                    'score_difference': cs- avg_s,
+                    'description': f"Strong advantage in {d}"
+                })
+            elif cs< avg_s-1:
+                disadvantages.append({
+                    'dimension': d,
+                    'score_difference': avg_s- cs,
+                    'description': f"Weakness in {d}"
+                })
+
+        total_company= sum(company_scores.values())
+        total_avg= sum(avg_scores.values())
+        if total_company> total_avg+3:
+            position= "Market Leader"
+        elif total_company> total_avg:
+            position= "Strong Competitor"
+        elif total_company> total_avg-3:
+            position= "Average Competitor"
+        else:
+            position= "Lagging Competitor"
+
+        return {
+            'dimensions': dimensions,
+            'company_scores': company_scores,
+            'competitor_scores': competitor_scores,
+            'average_scores': avg_scores,
+            'advantages': advantages,
+            'disadvantages': disadvantages,
+            'position': position,
+            'overall_company_score': total_company,
+            'overall_average_score': total_avg
+        }
+
+    def _score_company(self, cdata: Dict[str,Any], dims: List[str])->Dict[str,float]:
+        scores= {}
+        product_maturity= cdata.get("product_maturity_score",50)/ 10
+        innovation= cdata.get("technical_innovation_score",50)/10
+        scores["Product"]= (product_maturity+ innovation)/2
+
+        tech_debt= 10- (cdata.get("technical_debt_score",50)/10)
+        scalability= cdata.get("scalability_score",50)/10
+        scores["Technology"]= (tech_debt+ scalability)/2
+
+        ms= cdata.get("market_share",0)*100
+        if ms>10: ms=10
+        partner= min(10, cdata.get("channel_partner_count",0)/ 5)
+        scores["Market Reach"]= (ms+ partner)/2
+
+        ltv_cac= min(10, cdata.get("ltv_cac_ratio",0)*2)
+        gm= cdata.get("gross_margin_percent",70)
+        if gm>1:
+            gm= gm/10
+        scores["Pricing"]= (ltv_cac+ gm)/2
+
+        nps= (cdata.get("nps_score",0)+ 100)/ 20
+        support= cdata.get("support_ticket_sla_percent",0)/10
+        scores["Customer Experience"]= (nps+ support)/2
+        return scores
+
+    def _score_competitor(self, comp: Dict[str,Any], dims: List[str])->Dict[str,float]:
+        import numpy as np
+        scores= {}
+        for d in dims:
+            base_score= np.random.uniform(3,8)
+            s= [ x.lower() for x in comp.get("strengths",[]) ]
+            w= [ x.lower() for x in comp.get("weaknesses",[]) ]
+            d_lower= d.lower()
+            for st in s:
+                if any(k in st for k in d_lower.split()):
+                    base_score+= np.random.uniform(1,2)
+                    break
+            for we in w:
+                if any(k in we for k in d_lower.split()):
+                    base_score-= np.random.uniform(1,2)
+                    break
+            scores[d]= max(1, min(10, base_score))
+        return scores
+
+    def market_trends_analysis(self, sector: str)-> Dict[str,Any]:
+        import numpy as np
+        current_year=2025
+        years= list(range(current_year-4, current_year+6))
+
+        if sector.lower() in ["fintech","finance"]:
+            base_size= 50
+            g_rate= 0.15
+        elif sector.lower() in ["saas","software"]:
+            base_size= 150
+            g_rate= 0.18
+        elif sector.lower() in ["ecommerce","retail"]:
+            base_size= 300
+            g_rate= 0.12
+        elif sector.lower() in ["biotech","healthcare"]:
+            base_size= 120
+            g_rate= 0.09
+        else:
+            base_size= 80
+            g_rate= 0.14
+
+        market_size=[]
+        for i, yr in enumerate(years):
+            if i<5:
+                size= base_size* ((1+ g_rate)** i)
+            else:
+                y_g= g_rate* np.random.uniform(0.8,1.2)
+                size= base_size* ((1+ g_rate)**4)* ((1+ y_g)**(i-4))
+            market_size.append({
+                "year": yr,
+                "size": round(size,1)
+            })
+
+        general_trends= [
+            {
+                'name':'AI Integration',
+                'description':'Increasing adoption of AI/ML for automation',
+                'impact_score':8
+            },
+            {
+                'name':'Data Privacy',
+                'description':'Growing focus on data protection',
+                'impact_score':7
+            },
+            {
+                'name':'Remote Collaboration',
+                'description':'Evolution of remote/hybrid workflows',
+                'impact_score':6
+            }
+        ]
+        if sector.lower() in ['fintech','finance']:
+            sector_trends= [
+                {
+                    'name': 'Embedded Finance',
+                    'description': 'Integrating financial services into non-financial platforms',
+                    'impact_score':9
+                },
+                {
+                    'name': 'DeFi Growth',
+                    'description': 'Decentralized finance gaining mainstream traction',
+                    'impact_score':8
+                }
+            ]
+        elif sector.lower() in ['saas','software']:
+            sector_trends= [
+                {
+                    'name':'Vertical SaaS',
+                    'description':'Niche solutions surpassing horizontal platforms',
+                    'impact_score':8
+                },
+                {
+                    'name':'Low-Code/No-Code',
+                    'description':'Democratized software dev for business users',
+                    'impact_score':7
+                }
+            ]
+        elif sector.lower() in ['ecommerce','retail']:
+            sector_trends= [
+                {
+                    'name': 'Social Commerce',
+                    'description': 'Shopping integrated in social media',
+                    'impact_score':9
+                },
+                {
+                    'name': 'Sustainable Commerce',
+                    'description': 'Eco-friendly supply chains & products',
+                    'impact_score':7
+                }
+            ]
+        else:
+            sector_trends= [
+                {
+                    'name': f'{sector} Digitalization',
+                    'description': f'Digital transformation in {sector} industry',
+                    'impact_score':8
+                },
+                {
+                    'name': 'Subscription Models',
+                    'description': 'Shift from one-time purchase => recurring revenue',
+                    'impact_score':7
+                }
+            ]
+        trends= general_trends+ sector_trends
+        tam= base_size* 1e9
+        sam= tam* np.random.uniform(0.1,0.3)
+        som= sam* np.random.uniform(0.05,0.15)
+        expansions= [
+            {
+                'market': 'International Expansion',
+                'opportunity': '2-3x by new geographies'
+            },
+            {
+                'market': 'Adjacent Verticals',
+                'opportunity': f'Pivot from core {sector} => related verticals'
+            },
+            {
+                'market': 'Enterprise Upsell',
+                'opportunity': 'Moving upmarket to large enterprise deals'
+            }
+        ]
+        return {
+            "market_size": market_size,
+            "cagr": round(g_rate*100,1),
+            "trends": trends,
+            "tam": tam,
+            "sam": sam,
+            "som": som,
+            "expansion_opportunities": expansions,
+            "overview": f"The {sector} market grows at ~{round(g_rate*100,1)}% yoy. Some major trends..."
+        }
+
+    def competitive_moat_analysis(self, company_data: Dict[str,Any])-> Dict[str,Any]:
+        moat_score= company_data.get("moat_score",0)
+        patents= company_data.get("patent_count",0)
+        brand_score= company_data.get("category_leadership_score",0)
+        viral= company_data.get("viral_coefficient",0)
+
+        categories= ['Network Effects','Switching Costs','Brand/Reputation','IP/Patents','Scale Economies','Data Advantage']
+        moat_scores={}
+
+        net= min(10, viral*10)
+        if 'marketplace' in company_data.get('business_model','').lower():
+            net+= 2
+        moat_scores['Network Effects']= min(10, net)
+
+        apis= company_data.get("api_integrations_count",0)
+        switch= min(10,(apis/5)+ 3)
+        moat_scores['Switching Costs']= switch
+
+        br_val= brand_score/10
+        moat_scores['Brand/Reputation']= br_val
+
+        ip_val= min(10, patents*2)
+        moat_scores['IP/Patents']= ip_val
+
+        mau= company_data.get("monthly_active_users",0)
+        if mau>1_000_000:
+            sc=8
+        elif mau>100_000:
+            sc=6
+        elif mau>10_000:
+            sc=4
+        else:
+            sc=2
+        moat_scores['Scale Economies']= sc
+
+        sec= company_data.get('sector','').lower()
+        if 'ai' in sec:
+            data_sc= 7
+        else:
+            data_sc= 4
+        moat_scores['Data Advantage']= data_sc
+
+        sorted_moats= sorted(moat_scores.items(), key=lambda x:x[1], reverse=True)
+        strongest= sorted_moats[:2]
+        weakest= sorted_moats[-2:]
+        avg_moat= sum(moat_scores.values())/ len(moat_scores)
+        if avg_moat>=7:
+            assessment= "Strong moat => significant defensibility"
+        elif avg_moat>=5:
+            assessment= "Moderate moat => partial defensibility"
+        else:
+            assessment= "Limited moat => must strengthen for long-term defense"
+
+        recs= []
+        for cat, sc_val in weakest:
+            if cat=='Network Effects' and sc_val<5:
+                recs.append("Implement referral programs & viral loops to boost network effect.")
+            elif cat=='Switching Costs' and sc_val<5:
+                recs.append("Increase product integrations & data lock-in to enhance switching costs.")
+            elif cat=='Brand/Reputation' and sc_val<5:
+                recs.append("Invest in brand marketing & thought leadership to bolster brand moats.")
+            elif cat=='IP/Patents' and sc_val<5:
+                recs.append("File core tech patents to build IP-based moat.")
+            elif cat=='Scale Economies' and sc_val<5:
+                recs.append("Focus on scaling user base in core market before expansions.")
+            elif cat=='Data Advantage' and sc_val<5:
+                recs.append("Develop proprietary data sets to feed AI or analytics for differentiation.")
+
+        return {
+            "moat_categories": categories,
+            "moat_scores": moat_scores,
+            "strongest_moats": strongest,
+            "weakest_moats": weakest,
+            "average_moat_score": avg_moat,
+            "moat_assessment": assessment,
+            "recommendations": recs
+        }
