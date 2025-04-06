@@ -66,6 +66,24 @@ from cohort_analysis import CohortAnalyzer
 from network_analysis import NetworkEffectAnalyzer
 from benchmarking import BenchmarkEngine, BenchmarkResult
 
+# Import PDF patch to ensure all PDF generation functions are available
+import pdf_patch
+# Explicitly apply the patch to ensure PDF functions are globally available
+pdf_patch.apply_patch()
+
+# Import global PDF functions to ensure they're available in this module's namespace
+import global_pdf_functions
+from global_pdf_functions import generate_enhanced_pdf, generate_investor_report
+
+# Import PDF generator functions directly to ensure they're available in this module's namespace
+try:
+    from unified_pdf_generator import generate_enhanced_pdf, generate_investor_report
+except ImportError:
+    logging.error("Failed to import PDF generator functions directly")
+
+# Configuration variables
+USE_UNIFIED_PDF_GENERATOR = True  # Set to True to use the new unified PDF generator
+
 # Use try/except for report_generator that requires fpdf
 try:
     from report_generator import generate_investor_report
@@ -2363,8 +2381,41 @@ def render_report_tab(doc: dict):
             if st.button("Generate PDF Report"):
                 with st.spinner("Generating enhanced PDF report..."):
                     try:
-                        # Generate the enhanced PDF
-                        pdf_bytes = generate_enhanced_pdf(doc_copy)
+                        # Try multiple approaches to get generate_enhanced_pdf function
+                        pdf_bytes = None
+                        error_message = ""
+                        
+                        # Try direct call first (builtins or module import)
+                        try:
+                            # This should work if pdf_patch was successful
+                            pdf_bytes = generate_enhanced_pdf(doc_copy)
+                            logger.info("Generated PDF using direct call to generate_enhanced_pdf")
+                        except NameError as ne:
+                            error_message = f"NameError: {str(ne)}"
+                            logger.warning(f"Direct call failed: {error_message}")
+                            
+                            # Try importing from pdf_generator
+                            try:
+                                import pdf_generator
+                                pdf_bytes = pdf_generator.generate_enhanced_pdf(doc_copy)
+                                logger.info("Generated PDF using pdf_generator.generate_enhanced_pdf")
+                            except (ImportError, AttributeError) as e:
+                                error_message += f"\nFailed to use pdf_generator: {str(e)}"
+                                logger.warning(f"pdf_generator import failed: {str(e)}")
+                                
+                                # Try importing directly from unified_pdf_generator
+                                try:
+                                    import unified_pdf_generator
+                                    pdf_bytes = unified_pdf_generator.generate_enhanced_pdf(doc_copy)
+                                    logger.info("Generated PDF using unified_pdf_generator.generate_enhanced_pdf")
+                                except (ImportError, AttributeError) as e:
+                                    error_message += f"\nFailed to use unified_pdf_generator: {str(e)}"
+                                    logger.error(f"All PDF generation attempts failed: {error_message}")
+                                    raise Exception(f"PDF generation failed: {error_message}")
+                        except Exception as e:
+                            error_message = f"Unexpected error: {str(e)}"
+                            logger.error(f"PDF generation failed with error: {error_message}")
+                            raise
                         
                         if pdf_bytes:
                             st.download_button(
@@ -2410,8 +2461,41 @@ def render_report_tab(doc: dict):
         if st.button("Generate Custom PDF Report"):
             with st.spinner("Generating custom PDF report..."):
                 try:
-                    # Generate the enhanced custom PDF
-                    pdf_bytes = generate_enhanced_pdf(doc_copy, "custom", selected_sections)
+                    # Similar multiple approaches for custom PDF generation
+                    pdf_bytes = None
+                    error_message = ""
+                    
+                    # Try direct call first (builtins or module import)
+                    try:
+                        # This should work if pdf_patch was successful
+                        pdf_bytes = generate_enhanced_pdf(doc_copy, "custom", selected_sections)
+                        logger.info("Generated custom PDF using direct call to generate_enhanced_pdf")
+                    except NameError as ne:
+                        error_message = f"NameError: {str(ne)}"
+                        logger.warning(f"Direct call failed for custom PDF: {error_message}")
+                        
+                        # Try importing from pdf_generator
+                        try:
+                            import pdf_generator
+                            pdf_bytes = pdf_generator.generate_enhanced_pdf(doc_copy, "custom", selected_sections)
+                            logger.info("Generated custom PDF using pdf_generator.generate_enhanced_pdf")
+                        except (ImportError, AttributeError) as e:
+                            error_message += f"\nFailed to use pdf_generator: {str(e)}"
+                            logger.warning(f"pdf_generator import failed for custom PDF: {str(e)}")
+                            
+                            # Try importing directly from unified_pdf_generator
+                            try:
+                                import unified_pdf_generator
+                                pdf_bytes = unified_pdf_generator.generate_enhanced_pdf(doc_copy, "custom", selected_sections)
+                                logger.info("Generated custom PDF using unified_pdf_generator.generate_enhanced_pdf")
+                            except (ImportError, AttributeError) as e:
+                                error_message += f"\nFailed to use unified_pdf_generator: {str(e)}"
+                                logger.error(f"All custom PDF generation attempts failed: {error_message}")
+                                raise Exception(f"Custom PDF generation failed: {error_message}")
+                    except Exception as e:
+                        error_message = f"Unexpected error in custom PDF: {str(e)}"
+                        logger.error(f"Custom PDF generation failed with error: {error_message}")
+                        raise
                     
                     if pdf_bytes:
                         st.download_button(
