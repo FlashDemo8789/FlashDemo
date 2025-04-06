@@ -33,7 +33,8 @@ xgboost==1.7.6
 pymongo==4.6.1
 
 # Parallel processing
-ray==2.9.3
+ray==2.40.0  # or 2.44.1
+
 
 # NLP & document analysis
 nltk==3.8.1
