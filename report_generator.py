@@ -13,6 +13,12 @@ import numpy as np
 import tempfile
 import traceback
 import copy
+import streamlit as st
+import json
+from io import StringIO, BytesIO
+import csv
+import math
+from pdf_generator import generate_enhanced_pdf
 
 logger = logging.getLogger("report_generator")
 
@@ -154,7 +160,6 @@ class ReportPDF(FPDF):
         
         # Date
         self.set_font('Arial', 'I', 12)
-        self.cell(0, 15, f"Generated: {datetime.now().strftime('%B %d, %Y')}", 0, 1, 'C')
         
         # Confidentiality notice
         self.set_y(-60)
@@ -708,11 +713,6 @@ def generate_investor_report(doc, report_type="full", sections=None):
     # Add CAMP scores table
     camp_table_data = [
         ["Dimension", "Score", "Weight", "Description"],
-        ["Capital Efficiency", f"{capital_score:.1f}/100", "30%", "Financial health and capital deployment"],
-        ["Market Dynamics", f"{market_score:.1f}/100", "25%", "Market opportunity and growth potential"],
-        ["Advantage Moat", f"{advantage_score:.1f}/100", "20%", "Competitive advantages and defensibility"],
-        ["People & Performance", f"{people_score:.1f}/100", "25%", "Team strength and execution ability"],
-        ["Overall CAMP Score", f"{camp_score:.1f}/100", "100%", "Weighted average of all dimensions"]
     ]
     
     # Set up a more stylish table with better spacing
@@ -897,3 +897,234 @@ def generate_investor_report(doc, report_type="full", sections=None):
         error_pdf.set_font('Arial', '', 12)
         error_pdf.multi_cell(0, 10, f"An error occurred while generating the report: {str(e)}")
         return error_pdf.output(dest='S')
+
+# Custom JSON encoder to handle special types
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        # Handle pandas objects
+        if hasattr(pd, 'Period') and isinstance(obj, pd.Period):
+            return str(obj)
+        if hasattr(pd, 'Timestamp') and isinstance(obj, pd.Timestamp):
+            return obj.isoformat()
+        if hasattr(pd, 'DataFrame') and isinstance(obj, pd.DataFrame):
+            return obj.to_dict(orient='records')
+        if hasattr(pd, 'Series') and isinstance(obj, pd.Series):
+            return obj.to_dict()
+        
+        # Handle numpy types
+        if hasattr(obj, 'dtype'):
+            return obj.item()
+        
+        # Handle any other non-serializable objects
+        try:
+            return super().default(obj)
+        except TypeError:
+            return str(obj)
+
+# Helper function to flatten the nested metrics into a flat structure for CSV
+def flatten_metrics(doc):
+    """Convert nested document structure into a flat dictionary for CSV export."""
+    flat_dict = {}
+    
+    # Add company info
+    flat_dict["Company Name"] = doc.get("name", "")
+    flat_dict["Sector"] = doc.get("sector", "")
+    flat_dict["Stage"] = doc.get("stage", "")
+    
+    # Add key metrics
+    flat_dict["CAMP Score"] = doc.get("camp_score", 0)
+    flat_dict["Capital Score"] = doc.get("capital_score", 0)
+    flat_dict["Advantage Score"] = doc.get("advantage_score", 0)
+    flat_dict["Market Score"] = doc.get("market_score", 0)
+    flat_dict["People Score"] = doc.get("people_score", 0)
+    flat_dict["Success Probability"] = doc.get("success_prob", 0)
+    flat_dict["Runway (months)"] = doc.get("runway_months", 0)
+    
+    # Add financial metrics if available
+    flat_dict["Monthly Revenue"] = doc.get("monthly_revenue", 0)
+    flat_dict["Monthly Burn"] = doc.get("burn_rate", 0)
+    
+    # Add unit economics if available
+    unit_econ = doc.get("unit_economics", {})
+    if unit_econ:
+        flat_dict["LTV"] = unit_econ.get("ltv", 0)
+        flat_dict["CAC"] = unit_econ.get("cac", 0)
+        flat_dict["LTV:CAC Ratio"] = unit_econ.get("ltv_cac_ratio", 0)
+        flat_dict["Gross Margin"] = unit_econ.get("gross_margin", 0)
+    
+    # Add market metrics
+    flat_dict["Market Size"] = doc.get("market_size", 0)
+    flat_dict["Market Growth Rate"] = doc.get("market_growth_rate", 0)
+    flat_dict["Market Share"] = doc.get("market_share", 0)
+    
+    # Add team metrics
+    flat_dict["Team Size"] = doc.get("employee_count", 0)
+    flat_dict["Tech Talent Ratio"] = doc.get("tech_talent_ratio", 0)
+    
+    return flat_dict
+
+def render_report_tab(doc: dict):
+    """Render the report tab with download options for enhanced visual reports."""
+    st.header("Investor Report")
+    
+    try:
+        # Create a deep copy of the document to avoid modifying the original
+        logger = logging.getLogger("pdf_generator")
+        
+        doc_copy = copy.deepcopy(doc)
+        
+        # Pre-process pandas Period indices to ensure proper serialization
+        if "cohort_data" in doc_copy and isinstance(doc_copy["cohort_data"], dict):
+            for key, value in list(doc_copy["cohort_data"].items()):
+                if hasattr(value, 'index') and hasattr(pd, 'Period'):
+                    # Safe check for dtype attribute and type
+                    is_period_index = isinstance(value.index, pd.PeriodIndex)
+                    if (hasattr(value.index, 'dtype') and 
+                        isinstance(value.index.dtype, type) and 
+                        'period' in str(value.index.dtype).lower()) or is_period_index:
+                        
+                        doc_copy["cohort_data"][key] = value.copy()
+                        doc_copy["cohort_data"][key].index = [str(idx) for idx in value.index]
+                        logging.info(f"Converted Period index to strings in cohort_data[{key}]")
+        
+        # Create download buttons
+        col1, col2, col3 = st.columns(3)
+        
+        # Create JSON string with custom encoder
+        json_str = json.dumps(doc_copy, indent=2, cls=CustomJSONEncoder)
+        
+        with col1:
+            st.download_button(
+                label="Download JSON",
+                data=json_str,
+                file_name="startup_report.json",
+                mime="application/json"
+            )
+        
+        with col2:
+            # Convert to CSV format
+            try:
+                # Extract key metrics into a flat dictionary
+                flat_metrics = flatten_metrics(doc)
+                
+                # Convert to CSV
+                csv_buffer = StringIO()
+                writer = csv.writer(csv_buffer)
+                writer.writerow(flat_metrics.keys())
+                writer.writerow(flat_metrics.values())
+                
+                st.download_button(
+                    label="Download CSV",
+                    data=csv_buffer.getvalue(),
+                    file_name="startup_metrics.csv",
+                    mime="text/csv"
+                )
+            except Exception as e:
+                logging.error(f"Error creating CSV: {str(e)}")
+                st.error("Could not generate CSV format. Please use JSON download.")
+        
+        with col3:
+            # Enhanced PDF generation button
+            if st.button("Generate PDF Report"):
+                with st.spinner("Generating enhanced PDF report..."):
+                    try:
+                        # Generate the enhanced PDF
+                        pdf_bytes = generate_enhanced_pdf(doc_copy)
+                        
+                        if pdf_bytes:
+                            st.download_button(
+                                label="Download Enhanced PDF Report",
+                                data=pdf_bytes,
+                                file_name=f"{doc_copy.get('name', 'startup')}_report.pdf",
+                                mime="application/pdf"
+                            )
+                            st.success("Enhanced PDF report generated successfully!")
+                        else:
+                            st.error("PDF generation failed. Please try JSON or CSV format instead.")
+                    except Exception as e:
+                        st.error(f"PDF generation failed: {str(e)}")
+                        st.info("Please use JSON or CSV download formats instead.")
+        
+        # Report sections selection
+        st.subheader("Customize Report Sections")
+        st.write("Select sections to include in your next PDF report:")
+        
+        # Create columns for section selection
+        section_cols = st.columns(3)
+        section_options = {
+            "Executive Summary": True,
+            "Business Model": True,
+            "Market Analysis": True,
+            "Financial Projections": True,
+            "Team Assessment": True,
+            "Competitive Analysis": True,
+            "Growth Metrics": True,
+            "Risk Assessment": True,
+            "Exit Strategy": True,
+            "Technical Assessment": True
+        }
+        
+        selected_sections = {}
+        i = 0
+        for section, default in section_options.items():
+                selected_sections[section] = st.checkbox(section, value=default)
+                i += 1
+        
+        # Generate custom report button
+        if st.button("Generate Custom PDF Report"):
+            with st.spinner("Generating custom PDF report..."):
+                try:
+                    # Generate the enhanced custom PDF
+                    pdf_bytes = generate_enhanced_pdf(doc_copy, "custom", selected_sections)
+                    
+                    if pdf_bytes:
+                        st.download_button(
+                            label="Download Custom PDF Report",
+                            data=pdf_bytes,
+                            file_name=f"{doc_copy.get('name', 'startup')}_custom_report.pdf",
+                            mime="application/pdf"
+                        )
+                        st.success("Custom PDF report generated successfully!")
+                    else:
+                        st.error("Custom PDF generation failed. Please try JSON or CSV format instead.")
+                except Exception as e:
+                    st.error(f"Custom PDF generation failed: {str(e)}")
+                    st.info("Please use JSON or CSV download formats instead.")
+        
+        # Display preview
+        with st.expander("Preview Report Data"):
+            try:
+                st.json(json.loads(json_str))
+            except Exception as e:
+                logging.error(f"Error displaying JSON preview: {str(e)}")
+                st.error("Could not display report preview. Please download to view.")
+    
+    except Exception as e:
+        logging.error(f"Error in report generation: {str(e)}")
+        st.error("An error occurred while preparing the report data. Please try again.")
+
+# Add a wrapper function to connect with enhanced_pdf_generator
+def generate_enhanced_pdf(doc, report_type="full", sections=None):
+    """
+    Generate an enhanced PDF report with charts, graphs, and better formatting.
+    This is a wrapper function that calls generate_investor_report for compatibility.
+    
+    Args:
+        doc: The document data dictionary
+        report_type: The type of report ("full", "executive", "custom")
+        sections: Dictionary of sections to include if report_type is "custom"
+        
+    Returns:
+        bytes: The PDF data or None if generation failed
+    """
+    try:
+        # First, try to use the enhanced PDF generator
+        from enhanced_pdf_generator import generate_enhanced_pdf as enhanced_pdf_gen
+        logger = logging.getLogger("report_generator")
+        
+        logger.info("Using enhanced PDF generator for report generation")
+        return enhanced_pdf_gen(doc, report_type, sections)
+    except Exception as e:
+        # If enhanced generator fails, fall back to standard implementation
+        logger.warning(f"Enhanced PDF generator failed, using fallback: {e}")
+        return generate_investor_report(doc, report_type, sections)
