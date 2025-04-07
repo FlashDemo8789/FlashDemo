@@ -76,31 +76,70 @@ class InvestorReport:
     """
     
     def __init__(self, doc_data, report_type="full", sections=None):
-        """Initialize the report generator with configuration and styles."""
-        self.doc_data = copy.deepcopy(doc_data) if doc_data else {}
+        """Initialize the report generator."""
+        self.doc_data = doc_data
         self.report_type = report_type
         self.sections = sections
-        self.company_name = self.doc_data.get('name', 'Startup')
-        
-        # Determine which sections to include
-        self._determine_active_sections()
+        self.story = []
+        self.styles = {}
+        self.active_sections = self._determine_active_sections()
         
         # Initialize styles
-        self.styles = getSampleStyleSheet()
         self._setup_custom_styles()
         
-        # Story will contain all flowable elements
-        self.story = []
+        # Define table styles
+        self.table_style = TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2C3E50')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('TOPPADDING', (0, 1), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ])
         
-        logger.info(f"Initialized InvestorReport for {self.company_name}")
+        # Define alternating row style
+        self.alternating_row_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2C3E50')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')])
+        ])
+        
+        # Define metric table style
+        self.metric_table_style = TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 12),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ])
+        
+        logger.info(f"Initialized InvestorReport for {doc_data.get('name', 'Unknown Company')}")
     
     def _determine_active_sections(self):
         """Determine which sections to include in the report."""
         if self.report_type == "custom" and self.sections is not None:
-            self.active_sections = self.sections
+            return self.sections
         else:
             # Default sections for full report
-            self.active_sections = {
+            return {
                 "Executive Summary": True,
                 "Business Model": True,
                 "Market Analysis": True,
@@ -121,118 +160,106 @@ class InvestorReport:
                     self.active_sections[section] = False
     
     def _setup_custom_styles(self):
-        """Set up custom paragraph and table styles."""
-        # Title styles
+        """Set up custom styles for the report."""
+        # Get base styles
+        self.styles = getSampleStyleSheet()
+        
+        # Add custom styles
         self.styles.add(ParagraphStyle(
-            name='Title',
+            'CustomTitle',
             parent=self.styles['Title'],
             fontSize=24,
-            leading=28,
-            textColor=BRAND_PRIMARY
-        ))
-        
-        # Heading styles
-        self.styles.add(ParagraphStyle(
-            name='Heading1',
-            parent=self.styles['Heading1'],
-            fontSize=18,
-            leading=22,
-            textColor=BRAND_PRIMARY,
-            spaceAfter=12
-        ))
-        
-        self.styles.add(ParagraphStyle(
-            name='Heading2',
-            parent=self.styles['Heading2'],
-            fontSize=16,
-            leading=20,
-            textColor=BRAND_PRIMARY,
-            spaceAfter=10
-        ))
-        
-        self.styles.add(ParagraphStyle(
-            name='Heading3',
-            parent=self.styles['Heading3'],
-            fontSize=14,
-            leading=18,
-            textColor=BRAND_PRIMARY,
-            spaceAfter=8
-        ))
-        
-        # Body styles
-        self.styles.add(ParagraphStyle(
-            name='BodyText',
-            parent=self.styles['Normal'],
-            fontSize=11,
-            leading=14,
-            spaceBefore=6,
-            spaceAfter=6
-        ))
-        
-        # Special styles
-        self.styles.add(ParagraphStyle(
-            name='Metric',
-            parent=self.styles['Normal'],
-            fontSize=12,
-            leading=14,
-            textColor=BRAND_PRIMARY,
-            alignment=TA_CENTER
-        ))
-        
-        self.styles.add(ParagraphStyle(
-            name='MetricLabel',
-            parent=self.styles['Normal'],
-            fontSize=9,
-            leading=12,
-            textColor=colors.darkgrey,
-            alignment=TA_CENTER
-        ))
-        
-        self.styles.add(ParagraphStyle(
-            name='Caption',
-            parent=self.styles['Italic'],
-            fontSize=9,
-            leading=11,
-            alignment=TA_CENTER
-        ))
-        
-        # Financial styles
-        self.styles.add(ParagraphStyle(
-            name='Financial',
-            parent=self.styles['Normal'],
-            fontSize=10,
-            leading=12,
+            spaceAfter=30,
+            textColor=colors.black,
+            alignment=TA_CENTER,
             fontName='Helvetica-Bold'
         ))
         
-        # Table styles
-        self.table_style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), BRAND_PRIMARY),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
-            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
-            ('BOX', (0, 0), (-1, -1), 0.25, colors.grey),
-        ])
+        self.styles.add(ParagraphStyle(
+            'CustomHeading1',
+            parent=self.styles['Heading1'],
+            fontSize=18,
+            spaceAfter=12,
+            textColor=colors.black,
+            fontName='Helvetica-Bold'
+        ))
         
-        # Alternating row style
-        self.alternating_row_style = TableStyle([
-            ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
-            ('BACKGROUND', (0, 2), (-1, 2), colors.white),
-            ('BACKGROUND', (0, 4), (-1, 4), colors.white),
-            ('BACKGROUND', (0, 6), (-1, 6), colors.white),
-            ('BACKGROUND', (0, 8), (-1, 8), colors.white),
-        ])
+        self.styles.add(ParagraphStyle(
+            'CustomHeading2',
+            parent=self.styles['Heading2'],
+            fontSize=14,
+            spaceAfter=12,
+            textColor=colors.black,
+            fontName='Helvetica-Bold'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            'CustomHeading3',
+            parent=self.styles['Heading3'],
+            fontSize=12,
+            spaceAfter=10,
+            textColor=colors.black,
+            fontName='Helvetica-Bold'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            'CustomBodyText',
+            parent=self.styles['BodyText'],
+            fontSize=10,
+            spaceAfter=6,
+            textColor=colors.black,
+            fontName='Helvetica'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            'CustomItalic',
+            parent=self.styles['Italic'],
+            fontSize=10,
+            spaceAfter=6,
+            textColor=colors.black,
+            fontName='Helvetica-Oblique'
+        ))
+        
+        # Add metric styles
+        self.styles.add(ParagraphStyle(
+            'MetricValue',
+            parent=self.styles['BodyText'],
+            fontSize=14,
+            spaceAfter=2,
+            textColor=colors.black,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            'MetricLabel',
+            parent=self.styles['BodyText'],
+            fontSize=10,
+            spaceAfter=12,
+            textColor=colors.grey,
+            alignment=TA_CENTER,
+            fontName='Helvetica'
+        ))
+        
+        # Add table styles
+        self.styles.add(ParagraphStyle(
+            'TableHeader',
+            parent=self.styles['BodyText'],
+            fontSize=10,
+            textColor=colors.white,
+            alignment=TA_LEFT,
+            fontName='Helvetica-Bold',
+            backColor=colors.HexColor('#2C3E50')
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            'TableCell',
+            parent=self.styles['BodyText'],
+            fontSize=9,
+            textColor=colors.black,
+            alignment=TA_LEFT,
+            fontName='Helvetica'
+        ))
     
     def format_currency(self, value):
         """Format value as currency with proper notation for large numbers."""
@@ -275,19 +302,19 @@ class InvestorReport:
                         logger.warning(f"Error adding logo from {logo_path}: {str(logo_err)}")
             
             # Add report title
-            self.story.append(Paragraph("Investor Report", self.styles['Title']))
+            self.story.append(Paragraph("Investor Report", self.styles['CustomTitle']))
             self.story.append(Spacer(1, 0.5*inch))
             
             # Add company name in large font
             company_style = ParagraphStyle(
                 'CompanyName',
-                parent=self.styles['Title'],
+                parent=self.styles['CustomTitle'],
                 fontSize=36,
                 leading=40,
                 alignment=TA_CENTER,
                 spaceAfter=30
             )
-            self.story.append(Paragraph(self.company_name, company_style))
+            self.story.append(Paragraph(self.doc_data.get('name', 'Startup'), company_style))
             self.story.append(Spacer(1, 0.25*inch))
             
             # Add company info
@@ -306,7 +333,7 @@ class InvestorReport:
             # Add CAMP score
             camp_style = ParagraphStyle(
                 'CampScore',
-                parent=self.styles['Heading1'],
+                parent=self.styles['CustomHeading1'],
                 fontSize=20,
                 leading=24,
                 alignment=TA_CENTER,
@@ -380,15 +407,15 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error creating cover page: {str(e)}\n{traceback.format_exc()}")
             # Add minimal cover page if error occurs
-            self.story.append(Paragraph("Investor Report", self.styles['Title']))
+            self.story.append(Paragraph("Investor Report", self.styles['CustomTitle']))
             self.story.append(Spacer(1, 0.25*inch))
-            self.story.append(Paragraph(self.company_name, self.styles['Heading1']))
+            self.story.append(Paragraph(self.doc_data.get('name', 'Startup'), self.styles['CustomHeading1']))
             self.story.append(PageBreak())
 
     def create_table_of_contents(self):
         """Create a table of contents for the report."""
         try:
-            self.story.append(Paragraph("Table of Contents", self.styles['Heading1']))
+            self.story.append(Paragraph("Table of Contents", self.styles['CustomHeading1']))
             self.story.append(Spacer(1, 0.2*inch))
             
             toc_sections = []
@@ -420,13 +447,64 @@ class InvestorReport:
             logger.error(f"Error creating table of contents: {str(e)}")
             # Skip TOC if error occurs
     
+    def _safe_table(self, data, colWidths=None, style=None):
+        """Create a table safely, ensuring data is valid."""
+        try:
+            # Validate data
+            if not data or not isinstance(data, list) or len(data) == 0:
+                logger.warning("Empty or invalid table data")
+                return Paragraph("Table data unavailable", self.styles['CustomBodyText'])
+                
+            # Ensure all data is string type
+            data = [[str(cell) if cell is not None else '' for cell in row] for row in data]
+                
+            # Check that all rows have the same number of columns
+            col_count = len(data[0])
+            for row in data:
+                if len(row) != col_count:
+                    logger.warning(f"Inconsistent table column count: expected {col_count}, got {len(row)}")
+                    # Pad or truncate to make consistent
+                    if len(row) < col_count:
+                        row.extend([''] * (col_count - len(row)))
+                    else:
+                        row = row[:col_count]
+                        
+            # Create the table with default style if none provided
+            table = Table(data, colWidths=colWidths)
+            
+            # Apply style if provided
+            if style:
+                try:
+                    table.setStyle(style)
+                except Exception as style_error:
+                    logger.warning(f"Error applying table style: {style_error}")
+                    # Apply basic style as fallback
+                    table.setStyle(TableStyle([
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 12),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 1), (-1, -1), 10),
+                        ('TOPPADDING', (0, 1), (-1, -1), 6),
+                        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+                    ]))
+                
+            return table
+        except Exception as e:
+            logger.error(f"Error creating table: {str(e)}")
+            return Paragraph("Error displaying table data", self.styles['CustomBodyText'])
+            
     def create_executive_summary(self):
         """Create the executive summary section."""
         try:
             if not self.active_sections.get("Executive Summary", True):
                 return
                 
-            self.story.append(Paragraph("Executive Summary", self.styles['Heading1']))
+            self.story.append(Paragraph("Executive Summary", self.styles['CustomHeading1']))
             self.story.append(Spacer(1, 0.1*inch))
             
             # Add key metrics
@@ -442,7 +520,7 @@ class InvestorReport:
             self.add_camp_radar_chart()
             
             # Add CAMP scores table
-            self.story.append(Paragraph("CAMP Framework Scores", self.styles['Heading3']))
+            self.story.append(Paragraph("CAMP Framework Scores", self.styles['CustomHeading3']))
             
             camp_data = [
                 ["Dimension", "Score"],
@@ -452,17 +530,17 @@ class InvestorReport:
                 ["People & Performance", f"{self.doc_data.get('people_score', 0):.1f}/100"]
             ]
             
-            camp_table = Table(camp_data, colWidths=[3*inch, 1.5*inch])
-            camp_table.setStyle(self.table_style)
+            camp_table = self._safe_table(camp_data, colWidths=[3*inch, 1.5*inch], style=self.table_style)
             
-            # Add alternating row style
-            camp_table.setStyle(self.alternating_row_style)
+            # Add alternating row style if it's a table
+            if isinstance(camp_table, Table):
+                camp_table.setStyle(self.alternating_row_style)
             
             self.story.append(camp_table)
             self.story.append(Spacer(1, 0.2*inch))
             
             # Key strengths and weaknesses
-            self.story.append(Paragraph("Key Strengths", self.styles['Heading3']))
+            self.story.append(Paragraph("Key Strengths", self.styles['CustomHeading3']))
             
             # Extract strengths from patterns
             strengths = []
@@ -502,7 +580,7 @@ class InvestorReport:
             # Add strengths as bullet points
             strength_items = []
             for strength in strengths[:3]:
-                strength_items.append(ListItem(Paragraph(strength, self.styles['BodyText'])))
+                strength_items.append(ListItem(Paragraph(strength, self.styles['CustomBodyText'])))
             
             if strength_items:
                 self.story.append(ListFlowable(strength_items, bulletType='bullet', start=''))
@@ -510,7 +588,7 @@ class InvestorReport:
             self.story.append(Spacer(1, 0.2*inch))
             
             # Add weaknesses section
-            self.story.append(Paragraph("Areas for Improvement", self.styles['Heading3']))
+            self.story.append(Paragraph("Areas for Improvement", self.styles['CustomHeading3']))
             
             # Extract weaknesses from patterns
             weaknesses = []
@@ -550,7 +628,7 @@ class InvestorReport:
             # Add weaknesses as bullet points
             weakness_items = []
             for weakness in weaknesses[:3]:
-                weakness_items.append(ListItem(Paragraph(weakness, self.styles['BodyText'])))
+                weakness_items.append(ListItem(Paragraph(weakness, self.styles['CustomBodyText'])))
             
             if weakness_items:
                 self.story.append(ListFlowable(weakness_items, bulletType='bullet', start=''))
@@ -561,8 +639,8 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error creating executive summary: {str(e)}\n{traceback.format_exc()}")
             # Add basic executive summary if error occurs
-            self.story.append(Paragraph("Executive Summary", self.styles['Heading1']))
-            self.story.append(Paragraph("Error generating full executive summary.", self.styles['BodyText']))
+            self.story.append(Paragraph("Executive Summary", self.styles['CustomHeading1']))
+            self.story.append(Paragraph("Error generating full executive summary.", self.styles['CustomBodyText']))
             self.story.append(PageBreak())
     
     def create_camp_details(self):
@@ -571,11 +649,11 @@ class InvestorReport:
             if not self.active_sections.get("CAMP Details", True):
                 return
                 
-            self.story.append(Paragraph("CAMP Framework Details", self.styles['Heading1']))
+            self.story.append(Paragraph("CAMP Framework Details", self.styles['CustomHeading1']))
             
             # Capital efficiency
-            self.story.append(Paragraph("Capital Efficiency", self.styles['Heading2']))
-            self.story.append(Paragraph(f"Score: {self.doc_data.get('capital_score', 0):.1f}/100", self.styles['Heading3']))
+            self.story.append(Paragraph("Capital Efficiency", self.styles['CustomHeading2']))
+            self.story.append(Paragraph(f"Score: {self.doc_data.get('capital_score', 0):.1f}/100", self.styles['CustomHeading3']))
             
             capital_metrics = [
                 ("Monthly Revenue", self.format_currency(self.doc_data.get('monthly_revenue', 0))),
@@ -605,8 +683,8 @@ class InvestorReport:
                 )
             
             # Market dynamics
-            self.story.append(Paragraph("Market Dynamics", self.styles['Heading2']))
-            self.story.append(Paragraph(f"Score: {self.doc_data.get('market_score', 0):.1f}/100", self.styles['Heading3']))
+            self.story.append(Paragraph("Market Dynamics", self.styles['CustomHeading2']))
+            self.story.append(Paragraph(f"Score: {self.doc_data.get('market_score', 0):.1f}/100", self.styles['CustomHeading3']))
             
             market_metrics = [
                 ("Market Size", self.format_currency(self.doc_data.get('market_size', 0))),
@@ -625,8 +703,8 @@ class InvestorReport:
             self.add_metric_row(market_metrics2)
             
             # Advantage moat
-            self.story.append(Paragraph("Advantage Moat", self.styles['Heading2']))
-            self.story.append(Paragraph(f"Score: {self.doc_data.get('advantage_score', 0):.1f}/100", self.styles['Heading3']))
+            self.story.append(Paragraph("Advantage Moat", self.styles['CustomHeading2']))
+            self.story.append(Paragraph(f"Score: {self.doc_data.get('advantage_score', 0):.1f}/100", self.styles['CustomHeading3']))
             
             advantage_metrics = [
                 ("Technical Innovation", f"{self.doc_data.get('technical_innovation_score', 0):.1f}/100"),
@@ -637,8 +715,8 @@ class InvestorReport:
             self.add_metric_row(advantage_metrics)
             
             # People & performance
-            self.story.append(Paragraph("People & Performance", self.styles['Heading2']))
-            self.story.append(Paragraph(f"Score: {self.doc_data.get('people_score', 0):.1f}/100", self.styles['Heading3']))
+            self.story.append(Paragraph("People & Performance", self.styles['CustomHeading2']))
+            self.story.append(Paragraph(f"Score: {self.doc_data.get('people_score', 0):.1f}/100", self.styles['CustomHeading3']))
             
             people_metrics = [
                 ("Team Score", f"{self.doc_data.get('team_score', 0):.1f}/100"),
@@ -654,8 +732,8 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error creating CAMP details: {str(e)}\n{traceback.format_exc()}")
             # Add basic CAMP details if error occurs
-            self.story.append(Paragraph("CAMP Framework Details", self.styles['Heading1']))
-            self.story.append(Paragraph("Error generating full CAMP details.", self.styles['BodyText']))
+            self.story.append(Paragraph("CAMP Framework Details", self.styles['CustomHeading1']))
+            self.story.append(Paragraph("Error generating full CAMP details.", self.styles['CustomBodyText']))
             self.story.append(PageBreak())
     
     def create_business_model_section(self):
@@ -664,21 +742,21 @@ class InvestorReport:
             if not self.active_sections.get("Business Model", True):
                 return
                 
-            self.story.append(Paragraph("Business Model", self.styles['Heading1']))
+            self.story.append(Paragraph("Business Model", self.styles['CustomHeading1']))
             
             # Business model description
             business_model = self.doc_data.get("business_model", "")
             if business_model:
-                self.story.append(Paragraph(business_model, self.styles['BodyText']))
+                self.story.append(Paragraph(business_model, self.styles['CustomBodyText']))
             else:
-                self.story.append(Paragraph("No business model description available.", self.styles['BodyText']))
+                self.story.append(Paragraph("No business model description available.", self.styles['CustomBodyText']))
             
             self.story.append(Spacer(1, 0.2*inch))
             
             # Unit economics
             unit_econ = self.doc_data.get("unit_economics", {})
             if unit_econ:
-                self.story.append(Paragraph("Unit Economics", self.styles['Heading2']))
+                self.story.append(Paragraph("Unit Economics", self.styles['CustomHeading2']))
                 
                 # Extract values with defaults
                 ltv = unit_econ.get('ltv', 0)
@@ -698,7 +776,7 @@ class InvestorReport:
                 
                 # Add visual LTV to CAC comparison
                 self.story.append(Spacer(1, 0.2*inch))
-                self.story.append(Paragraph("LTV vs CAC Comparison", self.styles['Heading3']))
+                self.story.append(Paragraph("LTV vs CAC Comparison", self.styles['CustomHeading3']))
                 
                 # Create bar chart
                 if ltv > 0 or cac > 0:
@@ -707,7 +785,7 @@ class InvestorReport:
                         [ltv, cac], 
                         "Customer Value vs Acquisition Cost", 
                         "Value ($)",
-                        [BRAND_SUCCESS, BRAND_WARNING]
+                        ['#2CA02C', '#D62728']
                     )
                 
                 # Add interpretation
@@ -718,13 +796,13 @@ class InvestorReport:
                 else:
                     assessment = "Concerning unit economics with CAC higher than LTV. Focus on improving this ratio."
                 
-                self.story.append(Paragraph(f"Assessment: {assessment}", self.styles['BodyText']))
+                self.story.append(Paragraph(f"Assessment: {assessment}", self.styles['CustomBodyText']))
             
             # Financial projections
             financial_forecast = self.doc_data.get("financial_forecast", {})
             if financial_forecast:
                 self.story.append(Spacer(1, 0.2*inch))
-                self.story.append(Paragraph("Financial Projections", self.styles['Heading2']))
+                self.story.append(Paragraph("Financial Projections", self.styles['CustomHeading2']))
                 
                 # Extract revenue and profit data
                 months = financial_forecast.get("months", [])
@@ -770,8 +848,8 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error creating business model section: {str(e)}\n{traceback.format_exc()}")
             # Add basic section if error occurs
-            self.story.append(Paragraph("Business Model", self.styles['Heading1']))
-            self.story.append(Paragraph("Error generating full business model section.", self.styles['BodyText']))
+            self.story.append(Paragraph("Business Model", self.styles['CustomHeading1']))
+            self.story.append(Paragraph("Error generating full business model section.", self.styles['CustomBodyText']))
             self.story.append(PageBreak())
 
     def create_market_analysis_section(self):
@@ -780,7 +858,7 @@ class InvestorReport:
             if not self.active_sections.get("Market Analysis", True):
                 return
                 
-            self.story.append(Paragraph("Market Analysis", self.styles['Heading1']))
+            self.story.append(Paragraph("Market Analysis", self.styles['CustomHeading1']))
             
             # Market metrics
             market_metrics = [
@@ -795,7 +873,7 @@ class InvestorReport:
             market_trends = self.doc_data.get("market_trends", {})
             if isinstance(market_trends, dict) and "trends" in market_trends:
                 self.story.append(Spacer(1, 0.2*inch))
-                self.story.append(Paragraph("Market Trends", self.styles['Heading2']))
+                self.story.append(Paragraph("Market Trends", self.styles['CustomHeading2']))
                 
                 trends = market_trends.get("trends", [])
                 trend_items = []
@@ -803,9 +881,9 @@ class InvestorReport:
                 for trend in trends:
                     if isinstance(trend, dict):
                         trend_text = f"{trend.get('name', '')}: {trend.get('description', '')}"
-                        trend_items.append(ListItem(Paragraph(trend_text, self.styles['BodyText'])))
+                        trend_items.append(ListItem(Paragraph(trend_text, self.styles['CustomBodyText'])))
                     elif isinstance(trend, str):
-                        trend_items.append(ListItem(Paragraph(trend, self.styles['BodyText'])))
+                        trend_items.append(ListItem(Paragraph(trend, self.styles['CustomBodyText'])))
                 
                 if trend_items:
                     self.story.append(ListFlowable(trend_items, bulletType='bullet', start=''))
@@ -814,16 +892,16 @@ class InvestorReport:
             competitive_pos = self.doc_data.get("competitive_positioning", {})
             if competitive_pos:
                 self.story.append(Spacer(1, 0.2*inch))
-                self.story.append(Paragraph("Competitive Position", self.styles['Heading2']))
+                self.story.append(Paragraph("Competitive Position", self.styles['CustomHeading2']))
                 
                 position = competitive_pos.get("position", "challenger")
-                self.story.append(Paragraph(f"Current Position: {position.capitalize()}", self.styles['BodyText']))
+                self.story.append(Paragraph(f"Current Position: {position.capitalize()}", self.styles['CustomBodyText']))
                 
                 # Add competitive advantages
                 advantages = competitive_pos.get("advantages", [])
                 if advantages:
                     self.story.append(Spacer(1, 0.1*inch))
-                    self.story.append(Paragraph("Competitive Advantages", self.styles['Heading3']))
+                    self.story.append(Paragraph("Competitive Advantages", self.styles['CustomHeading3']))
                     
                     advantages_names = []
                     advantages_scores = []
@@ -845,7 +923,7 @@ class InvestorReport:
             pmf = self.doc_data.get("pmf_analysis", {})
             if pmf:
                 self.story.append(Spacer(1, 0.2*inch))
-                self.story.append(Paragraph("Product-Market Fit", self.styles['Heading2']))
+                self.story.append(Paragraph("Product-Market Fit", self.styles['CustomHeading2']))
                 
                 pmf_score = pmf.get("pmf_score", 0)
                 pmf_stage = pmf.get("stage", "")
@@ -880,8 +958,8 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error creating market analysis section: {str(e)}\n{traceback.format_exc()}")
             # Add basic section if error occurs
-            self.story.append(Paragraph("Market Analysis", self.styles['Heading1']))
-            self.story.append(Paragraph("Error generating full market analysis section.", self.styles['BodyText']))
+            self.story.append(Paragraph("Market Analysis", self.styles['CustomHeading1']))
+            self.story.append(Paragraph("Error generating full market analysis section.", self.styles['CustomBodyText']))
             self.story.append(PageBreak())
     
     def create_team_assessment_section(self):
@@ -890,7 +968,7 @@ class InvestorReport:
             if not self.active_sections.get("Team Assessment", True):
                 return
                 
-            self.story.append(Paragraph("Team Assessment", self.styles['Heading1']))
+            self.story.append(Paragraph("Team Assessment", self.styles['CustomHeading1']))
             
             # Team metrics
             team_metrics = [
@@ -911,7 +989,7 @@ class InvestorReport:
             
             # Leadership team
             self.story.append(Spacer(1, 0.2*inch))
-            self.story.append(Paragraph("Leadership Team", self.styles['Heading2']))
+            self.story.append(Paragraph("Leadership Team", self.styles['CustomHeading2']))
             
             leadership = {
                 "CEO": True,  # Assumed always present
@@ -924,13 +1002,14 @@ class InvestorReport:
             leaders = list(leadership.keys())
             status = [1 if v else 0 for v in leadership.values()]
             
-            self.add_bar_chart(
-                leaders,
-                status,
-                "Leadership Positions",
-                "Present (1) / Absent (0)",
-                [BRAND_SUCCESS if s else BRAND_WARNING for s in status]
-            )
+            if leaders and status and len(leaders) == len(status):
+                self.add_bar_chart(
+                    leaders,
+                    status,
+                    "Leadership Positions",
+                    "Present (1) / Absent (0)",
+                    ['#2CA02C' if s else '#D62728' for s in status]
+                )
             
             # Execution risk
             execution_risk = self.doc_data.get("execution_risk", {})
@@ -939,12 +1018,12 @@ class InvestorReport:
                 
                 if risk_factors:
                     self.story.append(Spacer(1, 0.2*inch))
-                    self.story.append(Paragraph("Execution Risk Factors", self.styles['Heading2']))
+                    self.story.append(Paragraph("Execution Risk Factors", self.styles['CustomHeading2']))
                     
                     factors = list(risk_factors.keys())
                     scores = list(risk_factors.values())
                     
-                    if factors and scores:
+                    if factors and scores and len(factors) == len(scores):
                         self.add_bar_chart(
                             factors,
                             scores,
@@ -954,12 +1033,12 @@ class InvestorReport:
             
             self.story.append(PageBreak())
             logger.info("Added team assessment section")
-            
+        
         except Exception as e:
             logger.error(f"Error creating team assessment section: {str(e)}\n{traceback.format_exc()}")
             # Add basic section if error occurs
-            self.story.append(Paragraph("Team Assessment", self.styles['Heading1']))
-            self.story.append(Paragraph("Error generating full team assessment section.", self.styles['BodyText']))
+            self.story.append(Paragraph("Team Assessment", self.styles['CustomHeading1']))
+            self.story.append(Paragraph("Error generating full team assessment section.", self.styles['CustomBodyText']))
             self.story.append(PageBreak())
     
     def create_competitive_analysis(self):
@@ -968,12 +1047,12 @@ class InvestorReport:
             if not self.active_sections.get("Competitive Analysis", True):
                 return
                 
-            self.story.append(Paragraph("Competitive Analysis", self.styles['Heading1']))
+            self.story.append(Paragraph("Competitive Analysis", self.styles['CustomHeading1']))
             
             # Competitors list
             competitors = self.doc_data.get("competitors", [])
             if competitors and all(isinstance(comp, dict) for comp in competitors):
-                self.story.append(Paragraph("Key Competitors", self.styles['Heading2']))
+                self.story.append(Paragraph("Key Competitors", self.styles['CustomHeading2']))
                 
                 # Prepare header and data for the table
                 headers = ["Competitor", "Funding", "Founded", "Threat Level"]
@@ -989,11 +1068,11 @@ class InvestorReport:
                     data.append(row)
                 
                 # Create the table
-                competitors_table = Table(data, colWidths=[2*inch, inch, inch, 1.5*inch])
-                competitors_table.setStyle(self.table_style)
+                competitors_table = self._safe_table(data, colWidths=[2*inch, inch, inch, 1.5*inch], style=self.table_style)
                 
                 # Add alternating row style
-                competitors_table.setStyle(self.alternating_row_style)
+                if isinstance(competitors_table, Table):
+                    competitors_table.setStyle(self.alternating_row_style)
                 
                 self.story.append(competitors_table)
                 self.story.append(Spacer(1, 0.2*inch))
@@ -1001,7 +1080,7 @@ class InvestorReport:
             # Competitive positioning
             positioning = self.doc_data.get("competitive_positioning", {})
             if positioning:
-                self.story.append(Paragraph("Competitive Positioning", self.styles['Heading2']))
+                self.story.append(Paragraph("Competitive Positioning", self.styles['CustomHeading2']))
                 
                 # Extract positioning data
                 dimensions = positioning.get("dimensions", [])
@@ -1011,7 +1090,7 @@ class InvestorReport:
                 if dimensions and company_position and competitor_positions and len(dimensions) >= 2:
                     # Add description of positioning
                     position_text = f"Current competitive position: {positioning.get('position', 'Challenger').capitalize()}"
-                    self.story.append(Paragraph(position_text, self.styles['BodyText']))
+                    self.story.append(Paragraph(position_text, self.styles['CustomBodyText']))
                     self.story.append(Spacer(1, 0.1*inch))
                     
                     # Create a competitor comparison table
@@ -1025,7 +1104,7 @@ class InvestorReport:
                         # Add company data
                         company_x = company_position.get(x_dim, 50)
                         company_y = company_position.get(y_dim, 50)
-                        data.append([self.company_name, f"{company_x:.1f}", f"{company_y:.1f}"])
+                        data.append([self.doc_data.get('name', 'Startup'), f"{company_x:.1f}", f"{company_y:.1f}"])
                         
                         # Add competitor data
                         for comp_name, comp_pos in competitor_positions.items():
@@ -1034,11 +1113,11 @@ class InvestorReport:
                             data.append([comp_name, f"{comp_x:.1f}", f"{comp_y:.1f}"])
                         
                         # Create the table
-                        position_table = Table(data, colWidths=[2*inch, 1.5*inch, 1.5*inch])
-                        position_table.setStyle(self.table_style)
+                        position_table = self._safe_table(data, colWidths=[2*inch, 1.5*inch, 1.5*inch], style=self.table_style)
                         
                         # Add alternating row style
-                        position_table.setStyle(self.alternating_row_style)
+                        if isinstance(position_table, Table):
+                            position_table.setStyle(self.alternating_row_style)
                         
                         self.story.append(position_table)
             
@@ -1046,11 +1125,11 @@ class InvestorReport:
             network = self.doc_data.get("network_analysis", {})
             if network:
                 self.story.append(Spacer(1, 0.2*inch))
-                self.story.append(Paragraph("Network Effects Analysis", self.styles['Heading2']))
+                self.story.append(Paragraph("Network Effects Analysis", self.styles['CustomHeading2']))
                 
                 # Network effect score
                 ne_score = network.get("network_effect_score", 0)
-                self.story.append(Paragraph(f"Network Effect Score: {ne_score:.1f}/100", self.styles['BodyText']))
+                self.story.append(Paragraph(f"Network Effect Score: {ne_score:.1f}/100", self.styles['CustomBodyText']))
                 
                 # Network effect types
                 ne_types = network.get("network_effect_types", {})
@@ -1059,7 +1138,7 @@ class InvestorReport:
                     types = list(ne_types.keys())
                     scores = list(ne_types.values())
                     
-                    if types and scores:
+                    if types and scores and len(types) == len(scores):
                         self.add_bar_chart(
                             types,
                             scores,
@@ -1073,8 +1152,8 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error creating competitive analysis section: {str(e)}\n{traceback.format_exc()}")
             # Add basic section if error occurs
-            self.story.append(Paragraph("Competitive Analysis", self.styles['Heading1']))
-            self.story.append(Paragraph("Error generating full competitive analysis section.", self.styles['BodyText']))
+            self.story.append(Paragraph("Competitive Analysis", self.styles['CustomHeading1']))
+            self.story.append(Paragraph("Error generating full competitive analysis section.", self.styles['CustomBodyText']))
             self.story.append(PageBreak())
 
     def add_remaining_sections(self):
@@ -1082,7 +1161,7 @@ class InvestorReport:
         try:
             # Forecast section
             if self.active_sections.get("Growth Metrics", True):
-                self.story.append(Paragraph("Growth Metrics & Forecasts", self.styles['Heading1']))
+                self.story.append(Paragraph("Growth Metrics & Forecasts", self.styles['CustomHeading1']))
                 
                 # User growth projection
                 sys_dynamics = self.doc_data.get("system_dynamics", {})
@@ -1091,7 +1170,7 @@ class InvestorReport:
                     months = list(range(len(users)))
                     
                     if users and months:
-                        self.story.append(Paragraph("User Growth Projection", self.styles['Heading2']))
+                        self.story.append(Paragraph("User Growth Projection", self.styles['CustomHeading2']))
                         self.add_line_chart(
                             months, 
                             users, 
@@ -1103,7 +1182,7 @@ class InvestorReport:
                 # Monte Carlo simulation
                 monte_carlo = self.doc_data.get("monte_carlo", {})
                 if monte_carlo and "user_projections" in monte_carlo:
-                    self.story.append(Paragraph("Monte Carlo Simulation", self.styles['Heading2']))
+                    self.story.append(Paragraph("Monte Carlo Simulation", self.styles['CustomHeading2']))
                     
                     # Extract key metrics
                     success_prob = monte_carlo.get("success_probability", 0)
@@ -1123,12 +1202,12 @@ class InvestorReport:
             
             # Risk assessment
             if self.active_sections.get("Risk Assessment", True):
-                self.story.append(Paragraph("Risk Assessment", self.styles['Heading1']))
+                self.story.append(Paragraph("Risk Assessment", self.styles['CustomHeading1']))
                 
                 # Extract risk factors
                 risk_factors = self.doc_data.get("risk_factors", {})
                 if risk_factors:
-                    self.story.append(Paragraph("Key Risk Factors", self.styles['Heading2']))
+                    self.story.append(Paragraph("Key Risk Factors", self.styles['CustomHeading2']))
                     
                     # Create risk table
                     headers = ["Risk Factor", "Severity", "Mitigation"]
@@ -1147,11 +1226,11 @@ class InvestorReport:
                             data.append(row)
                     
                     # Create the table
-                    risk_table = Table(data, colWidths=[2*inch, inch, 3*inch])
-                    risk_table.setStyle(self.table_style)
+                    risk_table = self._safe_table(data, colWidths=[2*inch, inch, 3*inch], style=self.table_style)
                     
                     # Add alternating row style
-                    risk_table.setStyle(self.alternating_row_style)
+                    if isinstance(risk_table, Table):
+                        risk_table.setStyle(self.alternating_row_style)
                     
                     self.story.append(risk_table)
                 
@@ -1160,7 +1239,7 @@ class InvestorReport:
             
             # Exit strategy
             if self.active_sections.get("Exit Strategy", True):
-                self.story.append(Paragraph("Exit Strategy", self.styles['Heading1']))
+                self.story.append(Paragraph("Exit Strategy", self.styles['CustomHeading1']))
                 
                 exit_analysis = self.doc_data.get("exit_path_analysis", {})
                 exit_recs = self.doc_data.get("exit_recommendations", {})
@@ -1170,16 +1249,16 @@ class InvestorReport:
                     optimal_path = exit_recs.get("optimal_path", "")
                     readiness = exit_recs.get("readiness", 0)
                     
-                    self.story.append(Paragraph(f"Exit Readiness: {readiness:.1f}/100", self.styles['BodyText']))
+                    self.story.append(Paragraph(f"Exit Readiness: {readiness:.1f}/100", self.styles['CustomBodyText']))
                     
                     if optimal_path:
-                        self.story.append(Paragraph(f"Optimal Exit Path: {exit_recs.get('path_details', {}).get('description', optimal_path)}", self.styles['BodyText']))
+                        self.story.append(Paragraph(f"Optimal Exit Path: {exit_recs.get('path_details', {}).get('description', optimal_path)}", self.styles['CustomBodyText']))
                     
                     # Exit timeline
                     timeline = exit_recs.get("timeline", {})
                     if timeline:
                         self.story.append(Spacer(1, 0.2*inch))
-                        self.story.append(Paragraph("Exit Timeline", self.styles['Heading2']))
+                        self.story.append(Paragraph("Exit Timeline", self.styles['CustomHeading2']))
                         
                         timeline_metrics = [
                             ("Years to Exit", f"{timeline.get('years_to_exit', 0):.1f}"),
@@ -1193,7 +1272,7 @@ class InvestorReport:
                     scenarios = exit_analysis.get("scenarios", [])
                     if scenarios and all(isinstance(s, dict) for s in scenarios):
                         self.story.append(Spacer(1, 0.2*inch))
-                        self.story.append(Paragraph("Exit Path Scenarios", self.styles['Heading2']))
+                        self.story.append(Paragraph("Exit Path Scenarios", self.styles['CustomHeading2']))
                         
                         # Create scenarios table
                         headers = ["Exit Path", "Valuation", "Probability", "Time to Exit"]
@@ -1209,11 +1288,11 @@ class InvestorReport:
                             data.append(row)
                         
                         # Create the table
-                        scenario_table = Table(data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
-                        scenario_table.setStyle(self.table_style)
+                        scenario_table = self._safe_table(data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch], style=self.table_style)
                         
                         # Add alternating row style
-                        scenario_table.setStyle(self.alternating_row_style)
+                        if isinstance(scenario_table, Table):
+                            scenario_table.setStyle(self.alternating_row_style)
                         
                         self.story.append(scenario_table)
                 
@@ -1222,19 +1301,19 @@ class InvestorReport:
             
             # Technical assessment
             if self.active_sections.get("Technical Assessment", True):
-                self.story.append(Paragraph("Technical Assessment", self.styles['Heading1']))
+                self.story.append(Paragraph("Technical Assessment", self.styles['CustomHeading1']))
                 
                 tech_assessment = self.doc_data.get("tech_assessment", {})
                 if tech_assessment:
                     # Overall tech score
                     tech_score = tech_assessment.get("overall_score", 0)
-                    self.story.append(Paragraph(f"Technical Assessment Score: {tech_score:.1f}/100", self.styles['BodyText']))
+                    self.story.append(Paragraph(f"Technical Assessment Score: {tech_score:.1f}/100", self.styles['CustomBodyText']))
                     
                     # Component scores
                     scores = tech_assessment.get("scores", {})
                     if scores:
                         self.story.append(Spacer(1, 0.2*inch))
-                        self.story.append(Paragraph("Component Scores", self.styles['Heading2']))
+                        self.story.append(Paragraph("Component Scores", self.styles['CustomHeading2']))
                         
                         categories = list(scores.keys())
                         values = list(scores.values())
@@ -1251,22 +1330,22 @@ class InvestorReport:
                     tech_stack = tech_assessment.get("tech_stack", {})
                     if tech_stack:
                         self.story.append(Spacer(1, 0.2*inch))
-                        self.story.append(Paragraph("Technology Stack", self.styles['Heading2']))
+                        self.story.append(Paragraph("Technology Stack", self.styles['CustomHeading2']))
                         
                         stack_categories = list(tech_stack.keys())
                         
                         for category in stack_categories:
-                            self.story.append(Paragraph(category, self.styles['Heading3']))
+                            self.story.append(Paragraph(category, self.styles['CustomHeading3']))
                             
                             technologies = tech_stack[category]
                             
                             if isinstance(technologies, list):
                                 tech_text = ", ".join(technologies)
-                                self.story.append(Paragraph(tech_text, self.styles['BodyText']))
+                                self.story.append(Paragraph(tech_text, self.styles['CustomBodyText']))
                             elif isinstance(technologies, dict):
                                 tech_items = []
                                 for tech, details in technologies.items():
-                                    tech_items.append(ListItem(Paragraph(f"{tech}: {details}", self.styles['BodyText'])))
+                                    tech_items.append(ListItem(Paragraph(f"{tech}: {details}", self.styles['CustomBodyText'])))
                                 
                                 if tech_items:
                                     self.story.append(ListFlowable(tech_items, bulletType='bullet', start=''))
@@ -1275,11 +1354,11 @@ class InvestorReport:
                     recommendations = tech_assessment.get("recommendations", [])
                     if recommendations:
                         self.story.append(Spacer(1, 0.2*inch))
-                        self.story.append(Paragraph("Technical Recommendations", self.styles['Heading2']))
+                        self.story.append(Paragraph("Technical Recommendations", self.styles['CustomHeading2']))
                         
                         rec_items = []
                         for rec in recommendations:
-                            rec_items.append(ListItem(Paragraph(rec, self.styles['BodyText'])))
+                            rec_items.append(ListItem(Paragraph(rec, self.styles['CustomBodyText'])))
                         
                         if rec_items:
                             self.story.append(ListFlowable(rec_items, bulletType='bullet', start=''))
@@ -1290,8 +1369,8 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error adding remaining sections: {str(e)}\n{traceback.format_exc()}")
             # Add basic section if error occurs
-            self.story.append(Paragraph("Additional Sections", self.styles['Heading1']))
-            self.story.append(Paragraph("Error generating additional sections.", self.styles['BodyText']))
+            self.story.append(Paragraph("Additional Sections", self.styles['CustomHeading1']))
+            self.story.append(Paragraph("Error generating additional sections.", self.styles['CustomBodyText']))
             self.story.append(PageBreak())
     
     def add_metric_row(self, metrics):
@@ -1336,7 +1415,7 @@ class InvestorReport:
             logger.error(f"Error adding metric row: {str(e)}")
             # Fallback to simple format
             for label, value in metrics:
-                self.story.append(Paragraph(f"{label}: {value}", self.styles['BodyText']))
+                self.story.append(Paragraph(f"{label}: {value}", self.styles['CustomBodyText']))
             self.story.append(Spacer(1, 0.2*inch))
     
     def add_camp_radar_chart(self):
@@ -1403,8 +1482,8 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error creating CAMP radar chart: {str(e)}\n{traceback.format_exc()}")
             # Skip chart if error occurs
-            self.story.append(Paragraph("CAMP Framework Visualization", self.styles['Heading3']))
-            self.story.append(Paragraph("Error generating CAMP radar chart.", self.styles['BodyText']))
+            self.story.append(Paragraph("CAMP Framework Visualization", self.styles['CustomHeading3']))
+            self.story.append(Paragraph("Error generating CAMP radar chart.", self.styles['CustomBodyText']))
             self.story.append(Spacer(1, 0.2*inch))
     
     def add_bar_chart(self, categories, values, title="", ylabel="Value", colors=None):
@@ -1419,7 +1498,12 @@ class InvestorReport:
             
             # Generate colors if not provided
             if colors is None:
-                colors = [BRAND_PRIMARY.hexval()] * len(categories)
+                colors = ['#1F77B4'] * len(categories)
+            else:
+                # Convert reportlab colors to matplotlib colors if needed
+                for i in range(len(colors)):
+                    if hasattr(colors[i], 'hexval'):
+                        colors[i] = colors[i].hexval()
                 
             # Create bars
             bars = ax.bar(categories, values, color=colors)
@@ -1460,8 +1544,8 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error creating bar chart: {str(e)}\n{traceback.format_exc()}")
             # Skip chart if error occurs
-            self.story.append(Paragraph(title, self.styles['Heading3']))
-            self.story.append(Paragraph("Error generating bar chart.", self.styles['BodyText']))
+            self.story.append(Paragraph(title, self.styles['CustomHeading3']))
+            self.story.append(Paragraph("Error generating bar chart.", self.styles['CustomBodyText']))
             self.story.append(Spacer(1, 0.2*inch))
     
     def add_line_chart(self, x_data, y_data, title="", xlabel="", ylabel="", color=None):
@@ -1517,8 +1601,8 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error creating line chart: {str(e)}\n{traceback.format_exc()}")
             # Skip chart if error occurs
-            self.story.append(Paragraph(title, self.styles['Heading3']))
-            self.story.append(Paragraph("Error generating line chart.", self.styles['BodyText']))
+            self.story.append(Paragraph(title, self.styles['CustomHeading3']))
+            self.story.append(Paragraph("Error generating line chart.", self.styles['CustomBodyText']))
             self.story.append(Spacer(1, 0.2*inch))
     
     def generate_report(self):
@@ -1603,7 +1687,56 @@ def generate_enhanced_pdf(doc, report_type="full", sections=None):
         
     except Exception as e:
         logger.error(f"Error in generate_enhanced_pdf: {str(e)}\n{traceback.format_exc()}")
-        return generate_emergency_pdf(doc)
+        try:
+            # First fallback: try to just create a simple report with cover and executive summary
+            logger.info("Trying simplified report generation")
+            buffer = io.BytesIO()
+            
+            # Create the document
+            doc_template = SimpleDocTemplate(
+                buffer, 
+                pagesize=letter,
+                leftMargin=0.5*inch,
+                rightMargin=0.5*inch,
+                topMargin=0.75*inch,
+                bottomMargin=0.75*inch
+            )
+            
+            # Get styles
+            styles = getSampleStyleSheet()
+            
+            # Create the story
+            story = []
+            
+            # Add title
+            story.append(Paragraph(f"{doc.get('name', 'Startup')} - Investor Report", styles['Title']))
+            story.append(Spacer(1, 0.5*inch))
+            
+            # Add CAMP score
+            story.append(Paragraph(f"CAMP Score: {doc.get('camp_score', 0):.1f}/100", styles['Heading1']))
+            story.append(Spacer(1, 0.25*inch))
+            
+            # Add CAMP breakdown
+            story.append(Paragraph("CAMP Framework Scores", styles['Heading2']))
+            story.append(Paragraph(f"Capital Efficiency: {doc.get('capital_score', 0):.1f}/100", styles['Normal']))
+            story.append(Paragraph(f"Market Dynamics: {doc.get('market_score', 0):.1f}/100", styles['Normal']))
+            story.append(Paragraph(f"Advantage Moat: {doc.get('advantage_score', 0):.1f}/100", styles['Normal']))
+            story.append(Paragraph(f"People & Performance: {doc.get('people_score', 0):.1f}/100", styles['Normal']))
+            
+            # Try to build the document
+            doc_template.build(story)
+            
+            # Get the PDF data
+            pdf_data = buffer.getvalue()
+            buffer.close()
+            logger.info("Successfully generated simplified report")
+            
+            return pdf_data
+            
+        except Exception as e2:
+            logger.error(f"Simplified report generation also failed: {e2}")
+            # Fall back to the emergency PDF
+            return generate_emergency_pdf(doc)
 
 def generate_emergency_pdf(doc):
     """Generate a minimal emergency PDF when the enhanced version fails."""
