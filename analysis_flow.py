@@ -2381,14 +2381,21 @@ def render_report_tab(doc: dict):
             if st.button("Generate PDF Report"):
                 with st.spinner("Generating enhanced PDF report..."):
                     try:
+                        # Create a unique filename with timestamp
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        output_path = f"reports/{doc_copy.get('company_name', 'startup')}_{timestamp}.pdf"
+                        
+                        # Ensure reports directory exists
+                        os.makedirs("reports", exist_ok=True)
+                        
                         # Try multiple approaches to get generate_enhanced_pdf function
-                        pdf_bytes = None
+                        success = False
                         error_message = ""
                         
                         # Try direct call first (builtins or module import)
                         try:
                             # This should work if pdf_patch was successful
-                            pdf_bytes = generate_enhanced_pdf(doc_copy)
+                            success = generate_enhanced_pdf(doc_copy, output_path)
                             logger.info("Generated PDF using direct call to generate_enhanced_pdf")
                         except NameError as ne:
                             error_message = f"NameError: {str(ne)}"
@@ -2397,7 +2404,7 @@ def render_report_tab(doc: dict):
                             # Try importing from pdf_generator
                             try:
                                 import pdf_generator
-                                pdf_bytes = pdf_generator.generate_enhanced_pdf(doc_copy)
+                                success = pdf_generator.generate_enhanced_pdf(doc_copy, output_path)
                                 logger.info("Generated PDF using pdf_generator.generate_enhanced_pdf")
                             except (ImportError, AttributeError) as e:
                                 error_message += f"\nFailed to use pdf_generator: {str(e)}"
@@ -2406,7 +2413,7 @@ def render_report_tab(doc: dict):
                                 # Try importing directly from unified_pdf_generator
                                 try:
                                     import unified_pdf_generator
-                                    pdf_bytes = unified_pdf_generator.generate_enhanced_pdf(doc_copy)
+                                    success = unified_pdf_generator.generate_enhanced_pdf(doc_copy, output_path)
                                     logger.info("Generated PDF using unified_pdf_generator.generate_enhanced_pdf")
                                 except (ImportError, AttributeError) as e:
                                     error_message += f"\nFailed to use unified_pdf_generator: {str(e)}"
@@ -2417,11 +2424,15 @@ def render_report_tab(doc: dict):
                             logger.error(f"PDF generation failed with error: {error_message}")
                             raise
                         
-                        if pdf_bytes:
+                        if success:
+                            # Read the generated PDF file
+                            with open(output_path, 'rb') as f:
+                                pdf_bytes = f.read()
+                            
                             st.download_button(
                                 label="Download Enhanced PDF Report",
                                 data=pdf_bytes,
-                                file_name=f"{doc_copy.get('name', 'startup')}_report.pdf",
+                                file_name=f"{doc_copy.get('company_name', 'startup')}_report.pdf",
                                 mime="application/pdf"
                             )
                             st.success("Enhanced PDF report generated successfully!")
@@ -2461,14 +2472,21 @@ def render_report_tab(doc: dict):
         if st.button("Generate Custom PDF Report"):
             with st.spinner("Generating custom PDF report..."):
                 try:
-                    # Similar multiple approaches for custom PDF generation
-                    pdf_bytes = None
+                    # Create a unique filename with timestamp
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    output_path = f"reports/{doc_copy.get('company_name', 'startup')}_custom_{timestamp}.pdf"
+                    
+                    # Ensure reports directory exists
+                    os.makedirs("reports", exist_ok=True)
+                    
+                    # Try multiple approaches for custom PDF generation
+                    success = False
                     error_message = ""
                     
                     # Try direct call first (builtins or module import)
                     try:
                         # This should work if pdf_patch was successful
-                        pdf_bytes = generate_enhanced_pdf(doc_copy, "custom", selected_sections)
+                        success = generate_enhanced_pdf(doc_copy, output_path, "custom", selected_sections)
                         logger.info("Generated custom PDF using direct call to generate_enhanced_pdf")
                     except NameError as ne:
                         error_message = f"NameError: {str(ne)}"
@@ -2477,7 +2495,7 @@ def render_report_tab(doc: dict):
                         # Try importing from pdf_generator
                         try:
                             import pdf_generator
-                            pdf_bytes = pdf_generator.generate_enhanced_pdf(doc_copy, "custom", selected_sections)
+                            success = pdf_generator.generate_enhanced_pdf(doc_copy, output_path, "custom", selected_sections)
                             logger.info("Generated custom PDF using pdf_generator.generate_enhanced_pdf")
                         except (ImportError, AttributeError) as e:
                             error_message += f"\nFailed to use pdf_generator: {str(e)}"
@@ -2486,7 +2504,7 @@ def render_report_tab(doc: dict):
                             # Try importing directly from unified_pdf_generator
                             try:
                                 import unified_pdf_generator
-                                pdf_bytes = unified_pdf_generator.generate_enhanced_pdf(doc_copy, "custom", selected_sections)
+                                success = unified_pdf_generator.generate_enhanced_pdf(doc_copy, output_path, "custom", selected_sections)
                                 logger.info("Generated custom PDF using unified_pdf_generator.generate_enhanced_pdf")
                             except (ImportError, AttributeError) as e:
                                 error_message += f"\nFailed to use unified_pdf_generator: {str(e)}"
@@ -2497,11 +2515,15 @@ def render_report_tab(doc: dict):
                         logger.error(f"Custom PDF generation failed with error: {error_message}")
                         raise
                     
-                    if pdf_bytes:
+                    if success:
+                        # Read the generated PDF file
+                        with open(output_path, 'rb') as f:
+                            pdf_bytes = f.read()
+                        
                         st.download_button(
                             label="Download Custom PDF Report",
                             data=pdf_bytes,
-                            file_name=f"{doc_copy.get('name', 'startup')}_custom_report.pdf",
+                            file_name=f"{doc_copy.get('company_name', 'startup')}_custom_report.pdf",
                             mime="application/pdf"
                         )
                         st.success("Custom PDF report generated successfully!")
