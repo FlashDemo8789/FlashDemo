@@ -1,66 +1,147 @@
 """
 Global PDF Functions
 
-This module ensures that PDF generation functions are available globally.
-Any module that imports this file will have access to the PDF generation functions.
+This module provides global access to PDF generation functions from various sources.
+It attempts to import from the most reliable source first, then falls back to alternatives.
 """
 
 import logging
 import sys
-import builtins
+import traceback
+from io import BytesIO
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("pdf_generator.log"),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger("global_pdf_functions")
-logger.setLevel(logging.INFO)
 
-# Add the functions to builtins if not already there
-if not hasattr(builtins, 'generate_enhanced_pdf'):
-    logger.info("Adding PDF functions to builtins namespace")
+# Global variables to store functions once imported
+_generate_enhanced_pdf = None
+_generate_emergency_pdf = None
+_generate_investor_report = None
+
+def _import_pdf_functions():
+    """Import PDF functions from various sources, with fallbacks."""
+    global _generate_enhanced_pdf, _generate_emergency_pdf, _generate_investor_report
     
+    # Try importing from unified_pdf_generator (primary source)
     try:
-        # Try to import from unified_pdf_generator first
-        from unified_pdf_generator import generate_enhanced_pdf, generate_investor_report
+        logger.info("Attempting to import from unified_pdf_generator")
+        from unified_pdf_generator import generate_enhanced_pdf, generate_emergency_pdf, generate_investor_report
+        _generate_enhanced_pdf = generate_enhanced_pdf
+        _generate_emergency_pdf = generate_emergency_pdf
+        _generate_investor_report = generate_investor_report
+        logger.info("Successfully imported from unified_pdf_generator")
+        return True
+    except ImportError as e:
+        logger.warning(f"Failed to import from unified_pdf_generator: {str(e)}")
+    
+    # Try importing from pdf_generator (compatibility layer)
+    try:
+        logger.info("Attempting to import from pdf_generator")
+        from pdf_generator import generate_enhanced_pdf, generate_emergency_pdf, generate_investor_report
+        _generate_enhanced_pdf = generate_enhanced_pdf
+        _generate_emergency_pdf = generate_emergency_pdf
+        _generate_investor_report = generate_investor_report
+        logger.info("Successfully imported from pdf_generator")
+        return True
+    except ImportError as e:
+        logger.warning(f"Failed to import from pdf_generator: {str(e)}")
+    
+    # Define minimal emergency functions
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        logger.info("Creating minimal emergency PDF functions using ReportLab")
         
-        builtins.generate_enhanced_pdf = generate_enhanced_pdf
-        builtins.generate_investor_report = generate_investor_report
+        def minimal_emergency_pdf(doc):
+            """Ultra-minimal emergency PDF generator."""
+            buffer = BytesIO()
+            doc_template = SimpleDocTemplate(buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+            
+            # Create error style
+            error_style = ParagraphStyle(
+                'Error',
+                parent=styles['Normal'],
+                textColor=colors.red
+            )
+            
+            story = [
+                Paragraph(f"{doc.get('name', 'Startup')} - Error Report", styles['Title']),
+                Spacer(1, 0.25*inch),
+                Paragraph("ERROR: PDF generation modules could not be loaded.", error_style),
+                Spacer(1, 0.1*inch),
+                Paragraph("Please check your installation and dependencies.", styles['Normal'])
+            ]
+            
+            doc_template.build(story)
+            return buffer.getvalue()
         
-        logger.info("Successfully added generate_enhanced_pdf and generate_investor_report to builtins")
+        # Set emergency functions
+        _generate_emergency_pdf = minimal_emergency_pdf
+        _generate_enhanced_pdf = minimal_emergency_pdf
+        _generate_investor_report = minimal_emergency_pdf
         
-    except ImportError:
-        logger.warning("Could not import from unified_pdf_generator, trying pdf_generator")
+        logger.info("Created minimal emergency PDF functions")
+        return True
         
-        try:
-            # Try to import from pdf_generator as fallback
-            from pdf_generator import generate_enhanced_pdf, generate_investor_report
-            
-            builtins.generate_enhanced_pdf = generate_enhanced_pdf
-            builtins.generate_investor_report = generate_investor_report
-            
-            logger.info("Successfully added PDF functions from pdf_generator to builtins")
-            
-        except ImportError:
-            logger.error("Could not find PDF generation functions in any module")
-            
-            # Define fallback functions
-            def generate_enhanced_pdf(doc, report_type="full", sections=None):
-                """Fallback function when the real function is not available."""
-                logger.error("PDF generation failed: No PDF generator module found")
-                raise ImportError("PDF generation failed: No PDF generator module found")
-            
-            def generate_investor_report(doc, report_type="full", sections=None):
-                """Fallback function when the real function is not available."""
-                logger.error("PDF generation failed: No PDF generator module found")
-                raise ImportError("PDF generation failed: No PDF generator module found")
-            
-            builtins.generate_enhanced_pdf = generate_enhanced_pdf
-            builtins.generate_investor_report = generate_investor_report
-            
-            logger.warning("Added fallback PDF functions to builtins")
+    except Exception as e:
+        logger.error(f"Failed to create minimal emergency functions: {str(e)}")
+        logger.error(traceback.format_exc())
+        return False
 
-# Export the functions at the module level for import statements
-try:
-    generate_enhanced_pdf = builtins.generate_enhanced_pdf
-    generate_investor_report = builtins.generate_investor_report
-except AttributeError:
-    logger.error("Failed to export PDF functions at module level")
+# Attempt to import functions at module load time
+_import_successful = _import_pdf_functions()
+
+def generate_enhanced_pdf(doc, report_type="full", sections=None):
+    """
+    Generate an enhanced PDF report with charts and graphs.
+    
+    This is a proxy function that calls the actual implementation.
+    """
+    global _generate_enhanced_pdf
+    
+    if _generate_enhanced_pdf is None:
+        if not _import_pdf_functions():
+            raise ImportError("Could not import PDF generation functions")
+    
+    return _generate_enhanced_pdf(doc, report_type, sections)
+
+def generate_emergency_pdf(doc):
+    """
+    Generate a minimal emergency PDF report when the enhanced version fails.
+    
+    This is a proxy function that calls the actual implementation.
+    """
+    global _generate_emergency_pdf
+    
+    if _generate_emergency_pdf is None:
+        if not _import_pdf_functions():
+            raise ImportError("Could not import PDF generation functions")
+    
+    return _generate_emergency_pdf(doc)
+
+def generate_investor_report(doc, report_type="full", sections=None):
+    """
+    Legacy function name for generate_enhanced_pdf.
+    
+    This is a proxy function that calls the actual implementation.
+    """
+    global _generate_investor_report
+    
+    if _generate_investor_report is None:
+        if not _import_pdf_functions():
+            raise ImportError("Could not import PDF generation functions")
+    
+    return _generate_investor_report(doc, report_type, sections)
 
 logger.info("Global PDF functions module initialized") 
