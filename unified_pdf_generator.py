@@ -13,6 +13,10 @@ import traceback
 import copy
 from datetime import datetime
 from fpdf import FPDF
+import matplotlib.pyplot as plt
+import numpy as np
+import base64
+from io import BytesIO
 
 # Configure logging
 logger = logging.getLogger("unified_pdf")
@@ -26,7 +30,7 @@ COLOR_WARNING = (214, 39, 40)  # Red
 COLOR_BACKGROUND = (248, 248, 248)  # Light gray
 
 class ReportPDF(FPDF):
-    """Base PDF class with common functionality."""
+    """Enhanced PDF class with support for charts and rich formatting."""
     
     def __init__(self, title="Investor Report", *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -35,6 +39,8 @@ class ReportPDF(FPDF):
         self.set_margins(15, 15, 15)
         self.set_auto_page_break(True, margin=15)
         self.has_cover = False
+        self.add_font('DejaVu', '', 'DejaVuSansCondensed.ttf', uni=True)
+        self.add_font('DejaVu', 'B', 'DejaVuSansCondensed-Bold.ttf', uni=True)
         
     def header(self):
         # Skip header on cover page
@@ -75,7 +81,7 @@ class ReportPDF(FPDF):
         self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
         
     def create_cover_page(self, doc):
-        """Create a stylish cover page with logo."""
+        """Create a stylish cover page with logo and key metrics."""
         self.company_name = doc.get('name', 'Startup')
         self.add_page()
         self.has_cover = True
@@ -116,6 +122,44 @@ class ReportPDF(FPDF):
         self.set_font('Arial', 'B', 16)
         self.set_text_color(*COLOR_PRIMARY)
         self.cell(0, 10, f"CAMP Score: {doc.get('camp_score', 0):.1f}/100", 0, 1, 'C')
+        
+        # Add key metrics in a nice grid
+        self.ln(5)
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(80, 80, 80)
+        
+        # Draw metric boxes
+        metrics = [
+            ("Success Probability", f"{doc.get('success_prob', 0):.1f}%"),
+            ("Runway", f"{doc.get('runway_months', 0):.1f} months"),
+            ("Monthly Revenue", f"${doc.get('monthly_revenue', 0):,.0f}")
+        ]
+        
+        self.ln(5)
+        # Create a centered metrics display
+        x_start = (self.w - 150) / 2
+        self.set_xy(x_start, self.y)
+        
+        for i, (label, value) in enumerate(metrics):
+            # Draw box
+            self.set_fill_color(*COLOR_BACKGROUND)
+            self.set_draw_color(*COLOR_PRIMARY)
+            self.rect(x_start + (i * 50), self.y, 45, 25, 'DF')
+            
+            # Add label
+            self.set_xy(x_start + (i * 50), self.y + 5)
+            self.set_font('Arial', 'B', 8)
+            self.set_text_color(80, 80, 80)
+            self.cell(45, 5, label, 0, 1, 'C')
+            
+            # Add value
+            self.set_xy(x_start + (i * 50), self.y + 5)
+            self.set_font('Arial', 'B', 12)
+            self.set_text_color(*COLOR_PRIMARY)
+            self.cell(45, 10, value, 0, 1, 'C')
+        
+        # Reset position
+        self.ln(30)
         
         # Date at bottom
         self.set_y(-50)
@@ -163,24 +207,35 @@ class ReportPDF(FPDF):
         self.cell(0, 8, str(value), 0, 1, 'L')
         
     def add_metric_row(self, metrics):
-        """Add a row of metrics with equal spacing."""
+        """Add a row of metrics with equal spacing and styled boxes."""
         col_width = (self.w - self.l_margin - self.r_margin) / len(metrics)
         
-        # First row: labels
-        for label, _ in metrics:
-            self.set_font('Arial', 'B', 10)
-            self.set_text_color(80, 80, 80)
-            self.cell(col_width, 8, label, 0, 0, 'L')
+        # Calculate positions
+        base_y = self.get_y()
+        box_height = 25
         
-        self.ln()
-        
-        # Second row: values
-        for _, value in metrics:
-            self.set_font('Arial', '', 10)
-            self.set_text_color(0, 0, 0)
-            self.cell(col_width, 8, str(value), 0, 0, 'L')
+        for i, (label, value) in enumerate(metrics):
+            x_pos = self.l_margin + (i * col_width)
             
-        self.ln(12)
+            # Draw box
+            self.set_fill_color(*COLOR_BACKGROUND)
+            self.set_draw_color(*COLOR_PRIMARY)
+            self.rect(x_pos, base_y, col_width - 2, box_height, 'DF')
+            
+            # Add label
+            self.set_xy(x_pos, base_y + 5)
+            self.set_font('Arial', 'B', 9)
+            self.set_text_color(80, 80, 80)
+            self.cell(col_width - 2, 5, label, 0, 1, 'C')
+            
+            # Add value
+            self.set_xy(x_pos, base_y + 12)
+            self.set_font('Arial', 'B', 11)
+            self.set_text_color(*COLOR_PRIMARY)
+            self.cell(col_width - 2, 10, value, 0, 1, 'C')
+            
+        # Move to next line
+        self.set_y(base_y + box_height + 5)
         
     def add_table(self, headers, data):
         """Add a styled table with headers and data."""
@@ -212,6 +267,202 @@ class ReportPDF(FPDF):
             self.ln()
         
         self.ln(5)
+    
+    def add_radar_chart(self, categories, values, title="CAMP Framework Scores"):
+        """Add a radar chart to the PDF."""
+        try:
+            # Create radar chart with matplotlib
+            fig = plt.figure(figsize=(5, 5))
+            ax = fig.add_subplot(111, polar=True)
+            
+            # Ensure the plot forms a complete circle by appending the first value at the end
+            values = np.array(values + [values[0]])
+            categories = categories + [categories[0]]
+            
+            # Compute angle for each category (in radians)
+            angles = np.linspace(0, 2*np.pi, len(categories), endpoint=False)
+            angles = np.append(angles, angles[0])
+            
+            # Draw the chart
+            ax.plot(angles, values, 'o-', linewidth=2, color='#1f77b4')
+            ax.fill(angles, values, alpha=0.25, color='#1f77b4')
+            
+            # Set category labels
+            ax.set_thetagrids(angles * 180/np.pi, categories)
+            
+            # Set radial limits
+            ax.set_ylim(0, 100)
+            
+            # Add gridlines
+            ax.grid(True)
+            
+            # Set title
+            plt.title(title, size=14, y=1.1)
+            
+            # Save to BytesIO
+            buf = BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight')
+            plt.close()
+            
+            # Get the current Y position
+            current_y = self.get_y()
+            
+            # Add title
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 10, title, 0, 1, 'C')
+            
+            # Add image
+            self.image(buf, x=(self.w - 100)/2, y=current_y + 10, w=100)
+            
+            # Move down after the chart
+            self.set_y(current_y + 120)
+            
+        except Exception as e:
+            logger.error(f"Error creating radar chart: {str(e)}")
+            self.add_paragraph(f"Error creating radar chart: {str(e)}")
+    
+    def add_bar_chart(self, categories, values, title="", ylabel="Value", colors=None):
+        """Add a bar chart to the PDF."""
+        try:
+            # Create bar chart with matplotlib
+            fig, ax = plt.subplots(figsize=(7, 4))
+            
+            # Generate colors if not provided
+            if colors is None:
+                colors = ['#1f77b4'] * len(categories)
+                
+            # Create bars
+            bars = ax.bar(categories, values, color=colors)
+            
+            # Customize the chart
+            ax.set_title(title)
+            ax.set_ylabel(ylabel)
+            
+            # Add value labels on top of bars
+            for bar in bars:
+                height = bar.get_height()
+                ax.annotate(f'{height:.1f}',
+                            xy=(bar.get_x() + bar.get_width()/2, height),
+                            xytext=(0, 3),  # 3 points vertical offset
+                            textcoords="offset points",
+                            ha='center', va='bottom')
+            
+            # Hide the right and top spines
+            ax.spines['right'].set_visible(False)
+            ax.spines['top'].set_visible(False)
+            
+            # Save to BytesIO
+            buf = BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight')
+            plt.close()
+            
+            # Get the current Y position
+            current_y = self.get_y()
+            
+            # Add title if not already in the chart
+            if not title:
+                self.set_font('Arial', 'B', 12)
+                self.cell(0, 10, title, 0, 1, 'C')
+            
+            # Add image
+            self.image(buf, x=(self.w - 140)/2, y=current_y, w=140)
+            
+            # Move down after the chart
+            self.set_y(current_y + 90)
+            
+        except Exception as e:
+            logger.error(f"Error creating bar chart: {str(e)}")
+            self.add_paragraph(f"Error creating bar chart: {str(e)}")
+    
+    def add_line_chart(self, x_data, y_data, title="", xlabel="", ylabel="", color='#1f77b4'):
+        """Add a line chart to the PDF."""
+        try:
+            # Create line chart with matplotlib
+            fig, ax = plt.subplots(figsize=(7, 4))
+            
+            # Create line
+            ax.plot(x_data, y_data, marker='o', color=color, linewidth=2)
+            
+            # Customize the chart
+            ax.set_title(title)
+            ax.set_xlabel(xlabel)
+            ax.set_ylabel(ylabel)
+            
+            # Hide the right and top spines
+            ax.spines['right'].set_visible(False)
+            ax.spines['top'].set_visible(False)
+            
+            # Add grid
+            ax.grid(True, linestyle='--', alpha=0.7)
+            
+            # Save to BytesIO
+            buf = BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight')
+            plt.close()
+            
+            # Get the current Y position
+            current_y = self.get_y()
+            
+            # Add title if not already in the chart
+            if not title:
+                self.set_font('Arial', 'B', 12)
+                self.cell(0, 10, title, 0, 1, 'C')
+            
+            # Add image
+            self.image(buf, x=(self.w - 140)/2, y=current_y, w=140)
+            
+            # Move down after the chart
+            self.set_y(current_y + 90)
+            
+        except Exception as e:
+            logger.error(f"Error creating line chart: {str(e)}")
+            self.add_paragraph(f"Error creating line chart: {str(e)}")
+    
+    def add_styled_unit_economics(self, unit_econ):
+        """Add a visually appealing unit economics section with a diagram."""
+        self.add_subsection_title("Unit Economics")
+        
+        # Extract values with defaults
+        ltv = unit_econ.get('ltv', 0)
+        cac = unit_econ.get('cac', 0)
+        ratio = unit_econ.get('ltv_cac_ratio', 0)
+        payback = unit_econ.get('cac_payback_months', 0)
+        
+        # Add metrics
+        metrics = [
+            ("LTV", f"${ltv:,.2f}"),
+            ("CAC", f"${cac:,.2f}"),
+            ("LTV:CAC Ratio", f"{ratio:.2f}"),
+            ("CAC Payback", f"{payback:.1f} months")
+        ]
+        
+        self.add_metric_row(metrics)
+        
+        # Add visual LTV to CAC comparison
+        self.ln(10)
+        self.add_subsection_title("LTV vs CAC Visualization")
+        
+        # Create bar chart
+        if ltv > 0 or cac > 0:
+            self.add_bar_chart(
+                ['LTV', 'CAC'], 
+                [ltv, cac], 
+                "Customer Value vs Acquisition Cost", 
+                "Value ($)",
+                ['#4CAF50', '#FF5722']
+            )
+        
+        # Add interpretation
+        self.ln(5)
+        
+        if ratio >= 3:
+            assessment = "Strong unit economics with LTV significantly higher than CAC."
+        elif ratio >= 1:
+            assessment = "Positive unit economics, but room for improvement in the LTV:CAC ratio."
+        else:
+            assessment = "Concerning unit economics with CAC higher than LTV. Focus on improving this ratio."
+        
+        self.add_paragraph(f"Assessment: {assessment}")
 
 def generate_enhanced_pdf(doc, report_type="full", sections=None):
     """
@@ -273,19 +524,100 @@ def generate_enhanced_pdf(doc, report_type="full", sections=None):
             ]
             pdf.add_metric_row(metrics)
             
-            # CAMP Framework breakdown
-            pdf.add_subsection_title("CAMP Framework Scores")
-            headers = ["Dimension", "Score"]
-            data = [
-                ["Capital Efficiency", f"{doc_copy.get('capital_score', 0):.1f}/100"],
-                ["Market Dynamics", f"{doc_copy.get('market_score', 0):.1f}/100"],
-                ["Advantage Moat", f"{doc_copy.get('advantage_score', 0):.1f}/100"],
-                ["People & Performance", f"{doc_copy.get('people_score', 0):.1f}/100"]
+            # Add CAMP radar chart
+            camp_categories = ['Capital', 'Market', 'Advantage', 'People']
+            camp_values = [
+                doc_copy.get('capital_score', 0),
+                doc_copy.get('market_score', 0),
+                doc_copy.get('advantage_score', 0),
+                doc_copy.get('people_score', 0)
             ]
-            pdf.add_table(headers, data)
-        
-        # Add additional sections based on active_sections
-        # For brevity, I'll just implement a couple key ones here
+            
+            pdf.add_radar_chart(camp_categories, camp_values, "CAMP Framework Scores")
+            
+            # Key strengths and weaknesses
+            pdf.add_subsection_title("Key Strengths")
+            
+            # Extract strengths from patterns
+            strengths = []
+            for pattern in doc_copy.get("patterns_matched", []):
+                if isinstance(pattern, dict) and pattern.get("is_positive", False):
+                    strengths.append(pattern.get("name", ""))
+            
+            # Add default strengths if none found
+            if not strengths:
+                if doc_copy.get('capital_score', 0) > 70:
+                    strengths.append("Strong capital efficiency")
+                if doc_copy.get('market_score', 0) > 70:
+                    strengths.append("Strong market positioning")
+                if doc_copy.get('advantage_score', 0) > 70:
+                    strengths.append("Strong competitive advantage")
+                if doc_copy.get('people_score', 0) > 70:
+                    strengths.append("Strong team execution")
+                
+                # Add at least one strength
+                if not strengths:
+                    max_score = max([
+                        doc_copy.get('capital_score', 0),
+                        doc_copy.get('market_score', 0),
+                        doc_copy.get('advantage_score', 0),
+                        doc_copy.get('people_score', 0)
+                    ])
+                    
+                    if max_score == doc_copy.get('capital_score', 0):
+                        strengths.append("Relative strength in capital efficiency")
+                    elif max_score == doc_copy.get('market_score', 0):
+                        strengths.append("Relative strength in market positioning")
+                    elif max_score == doc_copy.get('advantage_score', 0):
+                        strengths.append("Relative strength in competitive advantage")
+                    elif max_score == doc_copy.get('people_score', 0):
+                        strengths.append("Relative strength in team execution")
+            
+            # Add strengths to PDF
+            for strength in strengths[:3]:
+                pdf.add_paragraph(f"✓ {strength}")
+            
+            # Add weaknesses section
+            pdf.add_subsection_title("Areas for Improvement")
+            
+            # Extract weaknesses from patterns
+            weaknesses = []
+            for pattern in doc_copy.get("patterns_matched", []):
+                if isinstance(pattern, dict) and not pattern.get("is_positive", True):
+                    weaknesses.append(pattern.get("name", ""))
+            
+            # Add default weaknesses if none found
+            if not weaknesses:
+                if doc_copy.get('capital_score', 0) < 50:
+                    weaknesses.append("Improve capital efficiency")
+                if doc_copy.get('market_score', 0) < 50:
+                    weaknesses.append("Strengthen market positioning")
+                if doc_copy.get('advantage_score', 0) < 50:
+                    weaknesses.append("Build stronger competitive moat")
+                if doc_copy.get('people_score', 0) < 50:
+                    weaknesses.append("Enhance team capabilities")
+                
+                # Add at least one weakness
+                if not weaknesses:
+                    min_score = min([
+                        doc_copy.get('capital_score', 0),
+                        doc_copy.get('market_score', 0),
+                        doc_copy.get('advantage_score', 0),
+                        doc_copy.get('people_score', 0)
+                    ])
+                    
+                    if min_score == doc_copy.get('capital_score', 0):
+                        weaknesses.append("Consider improving capital efficiency")
+                    elif min_score == doc_copy.get('market_score', 0):
+                        weaknesses.append("Consider improving market positioning")
+                    elif min_score == doc_copy.get('advantage_score', 0):
+                        weaknesses.append("Consider strengthening competitive advantage")
+                    elif min_score == doc_copy.get('people_score', 0):
+                        weaknesses.append("Consider enhancing team capabilities")
+            
+            # Add weaknesses to PDF
+            for weakness in weaknesses[:3]:
+                pdf.add_paragraph(f"! {weakness}")
         
         # Business Model section
         if active_sections.get("Business Model", True):
@@ -296,19 +628,37 @@ def generate_enhanced_pdf(doc, report_type="full", sections=None):
             business_model = doc_copy.get("business_model", "")
             if business_model:
                 pdf.add_paragraph(business_model)
+            else:
+                pdf.add_paragraph("No business model description available.")
             
             # Unit economics
             unit_econ = doc_copy.get("unit_economics", {})
             if unit_econ:
-                pdf.add_subsection_title("Unit Economics")
+                pdf.add_styled_unit_economics(unit_econ)
+            
+            # Growth metrics
+            pdf.add_subsection_title("Key Growth Metrics")
+            
+            growth_metrics = [
+                ("Monthly Revenue", f"${doc_copy.get('monthly_revenue', 0):,.2f}"),
+                ("Revenue Growth", f"{doc_copy.get('revenue_growth_rate', 0):.1f}%/mo"),
+                ("User Growth", f"{doc_copy.get('user_growth_rate', 0):.1f}%/mo")
+            ]
+            pdf.add_metric_row(growth_metrics)
+            
+            # Projected growth chart
+            if isinstance(doc_copy.get("system_dynamics", {}), dict) and "users" in doc_copy.get("system_dynamics", {}):
+                users = doc_copy.get("system_dynamics", {}).get("users", [])
+                months = list(range(len(users)))
                 
-                # Unit economics metrics
-                metrics = [
-                    ("LTV", f"${unit_econ.get('ltv', 0):,.2f}"),
-                    ("CAC", f"${unit_econ.get('cac', 0):,.2f}"),
-                    ("LTV:CAC Ratio", f"{unit_econ.get('ltv_cac_ratio', 0):.2f}")
-                ]
-                pdf.add_metric_row(metrics)
+                if users and months:
+                    pdf.add_line_chart(
+                        months, 
+                        users, 
+                        "Projected User Growth", 
+                        "Months", 
+                        "Users"
+                    )
         
         # Market Analysis section
         if active_sections.get("Market Analysis", True):
@@ -322,6 +672,51 @@ def generate_enhanced_pdf(doc, report_type="full", sections=None):
                 ("Market Share", f"{doc_copy.get('market_share', 0):.2f}%")
             ]
             pdf.add_metric_row(metrics)
+            
+            # Competitive position
+            pdf.add_subsection_title("Competitive Position")
+            
+            # Extract competitive data
+            competitive_pos = doc_copy.get("competitive_positioning", {})
+            position = competitive_pos.get("position", "challenger")
+            
+            pdf.add_paragraph(f"Current Position: {position.capitalize()}")
+            
+            # Add competitive advantages
+            advantages = competitive_pos.get("advantages", [])
+            if advantages:
+                pdf.add_subsection_title("Competitive Advantages")
+                
+                advantages_names = []
+                advantages_scores = []
+                
+                for adv in advantages:
+                    if isinstance(adv, dict):
+                        advantages_names.append(adv.get("name", ""))
+                        advantages_scores.append(adv.get("score", 0))
+                
+                if advantages_names and advantages_scores:
+                    pdf.add_bar_chart(
+                        advantages_names,
+                        advantages_scores,
+                        "Competitive Advantages",
+                        "Score"
+                    )
+            
+            # Market penetration chart
+            market_penetration = doc_copy.get("market_penetration", {})
+            if isinstance(market_penetration, dict) and "timeline" in market_penetration and "penetration" in market_penetration:
+                timeline = market_penetration.get("timeline", [])
+                penetration = [p * 100 for p in market_penetration.get("penetration", [])]  # Convert to percentage
+                
+                if timeline and penetration and len(timeline) == len(penetration):
+                    pdf.add_line_chart(
+                        timeline,
+                        penetration,
+                        "Market Penetration Projection",
+                        "Month",
+                        "Penetration (%)"
+                    )
         
         # Team Assessment section
         if active_sections.get("Team Assessment", True):
@@ -342,7 +737,48 @@ def generate_enhanced_pdf(doc, report_type="full", sections=None):
                 ("Team Diversity", f"{doc_copy.get('founder_diversity_score', 0):.1f}/100")
             ]
             pdf.add_metric_row(metrics2)
-        
+            
+            # Execution risk
+            execution_risk = doc_copy.get("execution_risk", {})
+            if isinstance(execution_risk, dict) and "risk_factors" in execution_risk:
+                risk_factors = execution_risk.get("risk_factors", {})
+                
+                if risk_factors:
+                    pdf.add_subsection_title("Execution Risk Factors")
+                    
+                    factors = list(risk_factors.keys())
+                    scores = list(risk_factors.values())
+                    
+                    if factors and scores:
+                        pdf.add_bar_chart(
+                            factors,
+                            scores,
+                            "Risk Factors",
+                            "Risk Level"
+                        )
+            
+            # Team leadership
+            pdf.add_subsection_title("Leadership Team")
+            
+            leadership = {
+                "CEO": True,  # Assumed always present
+                "CTO": doc_copy.get("has_cto", False),
+                "CMO": doc_copy.get("has_cmo", False),
+                "CFO": doc_copy.get("has_cfo", False)
+            }
+            
+            # Create a visual representation of the leadership team
+            leaders = list(leadership.keys())
+            status = [1 if v else 0 for v in leadership.values()]
+            
+            pdf.add_bar_chart(
+                leaders,
+                status,
+                "Leadership Positions",
+                "Present (1) / Absent (0)",
+                ['#4CAF50' if s else '#FF5722' for s in status]
+            )
+            
         # Return the PDF as bytes
         logger.info("PDF generation completed successfully")
         return pdf.output(dest='S').encode('latin1')
@@ -398,10 +834,12 @@ def generate_emergency_pdf(doc):
         
     except Exception as e:
         logger.error(f"Emergency PDF generation also failed: {e}")
-        # Last resort - return a minimal valid PDF
-        return b'%PDF-1.3\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj\n<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>/Contents 4 0 R>>\nendobj\n4 0 obj\n<</Length 22>>stream\nBT\n/F1 12 Tf\n100 700 Td\n(Error generating report) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000056 00000 n \n0000000111 00000 n \n0000000212 00000 n \ntrailer\n<</Size 5/Root 1 0 R>>\nstartxref\n285\n%%EOF\n'
+        # Return an empty PDF if all else fails
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font('Arial', 'B', 16)
+        pdf.cell(0, 10, "Error Generating Report", 0, 1, 'C')
+        return pdf.output(dest='S').encode('latin1')
 
-# Legacy compatibility function names
-def generate_investor_report(doc, report_type="full", sections=None):
-    """Legacy wrapper for generate_enhanced_pdf."""
-    return generate_enhanced_pdf(doc, report_type, sections) 
+# Alias for backward compatibility
+generate_investor_report = generate_enhanced_pdf 
