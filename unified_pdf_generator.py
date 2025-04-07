@@ -543,7 +543,7 @@ class InvestorReport:
                 ['Metric', 'Value', 'Industry Benchmark'],
                 ['Monthly Revenue', f"${self.doc_data.get('monthly_revenue', 0):,.2f}", 'Industry Average'],
                 ['Growth Rate', f"{self.doc_data.get('revenue_growth_rate', 0)}%", 'Industry Average'],
-                ['LTV/CAC Ratio', f"{self.doc_data.get('ltv_cac_ratio', 0):.2f}", '>3.0'],
+                ['LTV/CAC Ratio', f"{self.doc_data.get('ltv_cac_ratio', 0):.2f}", 'Industry Average'],
                 ['Market Share', f"{self.doc_data.get('market_share', 0)}%", 'Industry Average'],
                 ['Runway', f"{self.doc_data.get('runway_months', 0)} months", '12-18 months']
             ]
@@ -1458,25 +1458,20 @@ class InvestorReport:
             self.story.append(Spacer(1, 0.2*inch))
     
     def add_bar_chart(self, categories, values, title="", ylabel="Value", colors=None):
-        """Add a bar chart using matplotlib."""
+        """Add a bar chart to the report."""
         try:
+            # Create figure with increased size and DPI
             plt.figure(figsize=(8, 5), dpi=300)
             
             # Generate colors if not provided
             if colors is None:
-                colors = [self.colors['primary']] * len(categories)
-            else:
-                # Convert reportlab colors to matplotlib colors if needed
-                for i in range(len(colors)):
-                    if hasattr(colors[i], 'hexval'):
-                        colors[i] = colors[i].hexval()
+                colors = ['#2C3E50', '#3498DB', '#E74C3C']  # Default colors in hex format
+            elif isinstance(colors, (list, tuple)):
+                # Convert reportlab colors to hex if needed
+                colors = [color.hexval() if hasattr(color, 'hexval') else color for color in colors]
             
-            # Create bars with enhanced styling
-            bars = plt.bar(categories, values, color=colors, width=0.6)
-            plt.title(title, fontsize=14, pad=20)
-            plt.ylabel(ylabel, fontsize=12)
-            plt.tick_params(axis='both', which='major', labelsize=10)
-            plt.grid(True, linestyle='--', alpha=0.7)
+            # Create bar chart
+            bars = plt.bar(categories, values, color=colors)
             
             # Add value labels on top of bars
             for bar in bars:
@@ -1485,89 +1480,71 @@ class InvestorReport:
                         f'{height:.1f}',
                         ha='center', va='bottom', fontsize=10)
             
-            plt.tight_layout(pad=2.0)
+            # Customize chart
+            plt.title(title, fontsize=14, pad=20)
+            plt.ylabel(ylabel, fontsize=12)
+            plt.grid(True, linestyle='--', alpha=0.7)
+            plt.xticks(rotation=45, ha='right')
             
-            # Save to BytesIO with high quality settings
+            # Adjust layout
+            plt.tight_layout()
+            
+            # Save to buffer
             buf = BytesIO()
-            plt.savefig(buf, format='png', bbox_inches='tight', dpi=300, pad_inches=0.2)
+            plt.savefig(buf, format='png', dpi=300, bbox_inches='tight')
             plt.close()
             
-            # Create image and add to story with larger dimensions
-            img = Image(buf)
-            img.drawHeight = 3.5*inch
-            img.drawWidth = 6.5*inch
-            img.hAlign = 'CENTER'
-            
-            self.story.append(img)
-            self.story.append(Spacer(1, 0.2*inch))
+            # Add image to story
+            buf.seek(0)
+            self.story.append(Image(buf, width=6.5*inch, height=3.5*inch))
+            self.story.append(Spacer(1, 0.5*inch))
             
             logger.info(f"Added bar chart: {title}")
-            
         except Exception as e:
-            logger.error(f"Error creating bar chart: {str(e)}\n{traceback.format_exc()}")
-            # Skip chart if error occurs
-            self.story.append(Paragraph(title, self.styles['CustomHeading3']))
-            self.story.append(Paragraph("Error generating bar chart.", self.styles['CustomBodyText']))
-            self.story.append(Spacer(1, 0.2*inch))
-    
+            logger.error(f"Error creating bar chart: {str(e)}")
+            self.story.append(Paragraph(f"Error displaying chart: {title}", self.styles['CustomBodyText']))
+
     def add_line_chart(self, x_data, y_data, title="", xlabel="", ylabel="", color=None):
-        """Add a line chart using matplotlib."""
+        """Add a line chart to the report."""
         try:
-            # Clear any existing plots
-            plt.clf()
-            plt.close('all')
+            plt.figure(figsize=(8, 5), dpi=300)
             
-            # Create line chart with matplotlib
-            fig, ax = plt.subplots(figsize=(8, 5), dpi=300)
-            
-            # Set color
-            if color is None:
-                color = self.colors['primary']
-            
-            # Create line
+            # Convert color to hex if it's a reportlab color
+            if color and hasattr(color, 'hexval'):
+                color = color.hexval()
+            elif color is None:
+                color = '#2C3E50'  # Default color in hex format
+                
+            ax = plt.gca()
             ax.plot(x_data, y_data, marker='o', color=color, linewidth=2)
             
-            # Customize the chart
-            ax.set_title(title, fontsize=14, pad=20)
-            ax.set_xlabel(xlabel, fontsize=12)
-            ax.set_ylabel(ylabel, fontsize=12)
+            # Customize chart
+            plt.title(title, fontsize=14, pad=20)
+            plt.xlabel(xlabel, fontsize=12)
+            plt.ylabel(ylabel, fontsize=12)
+            plt.grid(True, linestyle='--', alpha=0.7)
             
-            # Format y-axis with comma for thousands
-            if "Revenue" in ylabel or "Cash" in ylabel or "$" in ylabel:
-                formatter = FuncFormatter(lambda x, p: f'${x:,.0f}')
-                ax.yaxis.set_major_formatter(formatter)
+            # Format y-axis for financial metrics
+            if "Revenue" in ylabel or "Cash" in ylabel:
+                ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
             
-            # Hide the right and top spines
-            ax.spines['right'].set_visible(False)
-            ax.spines['top'].set_visible(False)
+            # Adjust layout
+            plt.tight_layout()
             
-            # Add grid
-            ax.grid(True, linestyle='--', alpha=0.7)
-            
-            plt.tight_layout(pad=2.0)
-            
-            # Save to BytesIO with high quality settings
+            # Save to buffer
             buf = BytesIO()
-            plt.savefig(buf, format='png', bbox_inches='tight', dpi=300, pad_inches=0.2)
+            plt.savefig(buf, format='png', dpi=300, bbox_inches='tight', quality=100)
             plt.close()
             
-            # Create image and add to story with larger dimensions
-            img = Image(buf)
-            img.drawHeight = 3.5*inch
-            img.drawWidth = 6.5*inch
-            img.hAlign = 'CENTER'
-            
-            self.story.append(img)
-            self.story.append(Spacer(1, 0.2*inch))
+            # Add image to story
+            buf.seek(0)
+            self.story.append(Image(buf, width=6.5*inch, height=3.5*inch))
+            self.story.append(Spacer(1, 0.5*inch))
             
             logger.info(f"Added line chart: {title}")
-            
         except Exception as e:
-            logger.error(f"Error creating line chart: {str(e)}\n{traceback.format_exc()}")
-            # Skip chart if error occurs
-            self.story.append(Paragraph(title, self.styles['CustomHeading3']))
-            self.story.append(Paragraph("Error generating line chart.", self.styles['CustomBodyText']))
-            self.story.append(Spacer(1, 0.2*inch))
+            logger.error(f"Error creating line chart: {str(e)}")
+            self.story.append(Paragraph(f"Error displaying chart: {title}", self.styles['CustomBodyText']))
     
     def generate_report(self):
         """Generate the complete report."""
@@ -1642,6 +1619,126 @@ class InvestorReport:
         canvas.saveState()
         canvas.setTitle(self.doc_data.get('name', 'Investor Report'))
         canvas.restoreState()
+
+    def create_risk_assessment(self):
+        """Create the risk assessment section."""
+        try:
+            if not self.active_sections.get("Risk Assessment", True):
+                return
+                
+            self.story.append(Paragraph("Risk Assessment", self.styles['CustomHeading1']))
+            self.story.append(Spacer(1, 12))
+            
+            # Extract risk factors
+            risk_factors = self.doc_data.get("risk_factors", {})
+            if not risk_factors:
+                # Generate comprehensive default risk factors
+                risk_factors = {
+                    "Market Risk": {
+                        "severity": 7.5,
+                        "mitigation": "Diversify revenue streams and expand market reach",
+                        "description": "Risk of market saturation or changing market conditions",
+                        "impact": "High impact on revenue growth and market share"
+                    },
+                    "Competitive Risk": {
+                        "severity": 6.0,
+                        "mitigation": "Strengthen competitive advantages and IP protection",
+                        "description": "Threat from existing and potential competitors",
+                        "impact": "Medium to high impact on market position"
+                    },
+                    "Operational Risk": {
+                        "severity": 5.5,
+                        "mitigation": "Implement robust operational processes and controls",
+                        "description": "Risk of operational inefficiencies or failures",
+                        "impact": "Medium impact on business continuity"
+                    },
+                    "Financial Risk": {
+                        "severity": 6.5,
+                        "mitigation": "Maintain healthy cash reserves and monitor burn rate",
+                        "description": "Risk of financial instability or cash flow issues",
+                        "impact": "High impact on business sustainability"
+                    },
+                    "Regulatory Risk": {
+                        "severity": 4.0,
+                        "mitigation": "Stay compliant with industry regulations and standards",
+                        "description": "Risk of regulatory changes or non-compliance",
+                        "impact": "Medium impact on operations"
+                    }
+                }
+            
+            # Create detailed risk table
+            headers = ["Risk Factor", "Severity", "Description", "Impact", "Mitigation Strategy"]
+            data = [headers]
+            
+            for factor, details in risk_factors.items():
+                if isinstance(details, dict):
+                    severity = details.get('severity', 0)
+                    description = details.get('description', 'No description available')
+                    impact = details.get('impact', 'Impact not specified')
+                    mitigation = details.get('mitigation', 'No mitigation strategy defined')
+                    data.append([factor, f"{severity:.1f}/10", description, impact, mitigation])
+                else:
+                    data.append([factor, f"{details:.1f}/10", "No description available", 
+                               "Impact not specified", "No mitigation strategy defined"])
+            
+            # Create the table with adjusted column widths
+            risk_table = self._safe_table(data, 
+                                        colWidths=[1.5*inch, 0.8*inch, 2*inch, 1.5*inch, 2*inch],
+                                        style=self.table_style)
+            
+            # Add alternating row style
+            if isinstance(risk_table, Table):
+                risk_table.setStyle(self.alternating_row_style)
+            
+            self.story.append(risk_table)
+            self.story.append(Spacer(1, 12))
+            
+            # Add risk severity visualization
+            factors = [row[0] for row in data[1:]]
+            severities = [float(row[1].split('/')[0]) for row in data[1:]]
+            
+            # Create color gradient based on severity
+            colors = ['#E74C3C' if s >= 7 else '#F39C12' if s >= 5 else '#2ECC71' for s in severities]
+            
+            self.add_bar_chart(
+                factors,
+                severities,
+                "Risk Severity by Factor",
+                "Severity (out of 10)",
+                colors
+            )
+            
+            # Add risk summary
+            self.story.append(Paragraph("Risk Summary", self.styles['CustomHeading2']))
+            self.story.append(Spacer(1, 6))
+            
+            # Calculate overall risk metrics
+            avg_severity = sum(severities) / len(severities)
+            high_risk_count = sum(1 for s in severities if s >= 7)
+            medium_risk_count = sum(1 for s in severities if 5 <= s < 7)
+            
+            summary_text = f"""
+            Overall Risk Assessment:
+            • Average Risk Severity: {avg_severity:.1f}/10
+            • High Risk Factors: {high_risk_count}
+            • Medium Risk Factors: {medium_risk_count}
+            • Total Risk Factors: {len(severities)}
+            
+            Key Risk Areas:
+            • Market and Competitive Risks: {sum(severities[:2])/2:.1f}/10
+            • Operational and Financial Risks: {sum(severities[2:4])/2:.1f}/10
+            • Regulatory Risk: {severities[-1]:.1f}/10
+            """
+            
+            self.story.append(Paragraph(summary_text, self.styles['CustomBodyText']))
+            self.story.append(PageBreak())
+            logger.info("Added detailed risk assessment section")
+            
+        except Exception as e:
+            logger.error(f"Error creating risk assessment section: {str(e)}")
+            self.story.append(Paragraph("Risk Assessment", self.styles['CustomHeading1']))
+            self.story.append(Paragraph("Error generating full risk assessment section.", self.styles['CustomBodyText']))
+            self.story.append(PageBreak())
 
 def generate_enhanced_pdf(doc, report_type="full", sections=None):
     """
