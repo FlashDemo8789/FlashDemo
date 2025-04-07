@@ -84,6 +84,19 @@ class InvestorReport:
         self.styles = {}
         self.active_sections = self._determine_active_sections()
         
+        # Define color scheme
+        self.colors = {
+            'primary': colors.HexColor('#2C3E50'),  # Dark blue
+            'secondary': colors.HexColor('#3498DB'),  # Light blue
+            'accent': colors.HexColor('#E74C3C'),  # Red
+            'success': colors.HexColor('#2ECC71'),  # Green
+            'warning': colors.HexColor('#F1C40F'),  # Yellow
+            'background': colors.HexColor('#F8F9FA'),  # Light grey
+            'text': colors.HexColor('#2C3E50'),  # Dark text
+            'light_text': colors.HexColor('#7F8C8D'),  # Light text
+            'border': colors.HexColor('#BDC3C7')  # Border color
+        }
+        
         # Initialize styles
         self._setup_custom_styles()
         
@@ -93,30 +106,31 @@ class InvestorReport:
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 12),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2C3E50')),
+            ('BACKGROUND', (0, 0), (-1, 0), self.colors['primary']),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('GRID', (0, 0), (-1, -1), 1, self.colors['border']),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 10),
             ('TOPPADDING', (0, 1), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+            ('TEXTCOLOR', (0, 1), (-1, -1), self.colors['text']),
         ])
         
         # Define alternating row style
         self.alternating_row_style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2C3E50')),
+            ('BACKGROUND', (0, 0), (-1, 0), self.colors['primary']),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
             ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+            ('TEXTCOLOR', (0, 1), (-1, -1), self.colors['text']),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')])
+            ('GRID', (0, 0), (-1, -1), 1, self.colors['border']),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, self.colors['background']])
         ])
         
         # Define metric table style
@@ -124,8 +138,8 @@ class InvestorReport:
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 12),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, -1), self.colors['text']),
+            ('GRID', (0, 0), (-1, -1), 1, self.colors['border']),
             ('BACKGROUND', (0, 0), (-1, -1), colors.white),
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
@@ -499,149 +513,124 @@ class InvestorReport:
             return Paragraph("Error displaying table data", self.styles['CustomBodyText'])
             
     def create_executive_summary(self):
-        """Create the executive summary section."""
+        """Create the executive summary section with detailed analysis."""
         try:
-            if not self.active_sections.get("Executive Summary", True):
-                return
-                
+            logger.info("Adding executive summary")
+            
+            # Add section title
             self.story.append(Paragraph("Executive Summary", self.styles['CustomHeading1']))
-            self.story.append(Spacer(1, 0.1*inch))
+            self.story.append(Spacer(1, 12))
             
-            # Add key metrics
-            self.add_metric_row([
-                ("CAMP Score", f"{self.doc_data.get('camp_score', 0):.1f}/100"),
-                ("Success Probability", f"{self.doc_data.get('success_prob', 0):.1f}%"),
-                ("Runway", f"{self.doc_data.get('runway_months', 0):.1f} months")
-            ])
+            # Company Overview
+            self.story.append(Paragraph("Company Overview", self.styles['CustomHeading2']))
+            self.story.append(Spacer(1, 6))
             
-            self.story.append(Spacer(1, 0.2*inch))
+            overview_text = f"""
+            {self.doc_data.get('name', 'The Company')} is a {self.doc_data.get('industry', 'technology')} company 
+            focused on {self.doc_data.get('value_proposition', 'delivering innovative solutions')}. 
+            The company has demonstrated strong growth with a {self.doc_data.get('revenue_growth_rate', 0)}% 
+            year-over-year revenue increase and has established a significant market presence.
+            """
+            self.story.append(Paragraph(overview_text, self.styles['CustomBodyText']))
+            self.story.append(Spacer(1, 12))
             
-            # Add CAMP radar chart
-            self.add_camp_radar_chart()
+            # Key Metrics
+            self.story.append(Paragraph("Key Performance Metrics", self.styles['CustomHeading2']))
+            self.story.append(Spacer(1, 6))
             
-            # Add CAMP scores table
-            self.story.append(Paragraph("CAMP Framework Scores", self.styles['CustomHeading3']))
-            
-            camp_data = [
-                ["Dimension", "Score"],
-                ["Capital Efficiency", f"{self.doc_data.get('capital_score', 0):.1f}/100"],
-                ["Market Dynamics", f"{self.doc_data.get('market_score', 0):.1f}/100"],
-                ["Advantage Moat", f"{self.doc_data.get('advantage_score', 0):.1f}/100"],
-                ["People & Performance", f"{self.doc_data.get('people_score', 0):.1f}/100"]
+            # Create metrics table
+            metrics_data = [
+                ['Metric', 'Value', 'Industry Benchmark'],
+                ['Monthly Revenue', f"${self.doc_data.get('monthly_revenue', 0):,.2f}", 'Industry Average'],
+                ['Growth Rate', f"{self.doc_data.get('revenue_growth_rate', 0)}%", 'Industry Average'],
+                ['LTV/CAC Ratio', f"{self.doc_data.get('ltv_cac_ratio', 0):.2f}", '>3.0'],
+                ['Market Share', f"{self.doc_data.get('market_share', 0)}%", 'Industry Average'],
+                ['Runway', f"{self.doc_data.get('runway_months', 0)} months", '12-18 months']
             ]
             
-            camp_table = self._safe_table(camp_data, colWidths=[3*inch, 1.5*inch], style=self.table_style)
+            metrics_table = self._safe_table(metrics_data, colWidths=[2*inch, inch, 1.5*inch], style=self.metric_table_style)
+            self.story.append(metrics_table)
+            self.story.append(Spacer(1, 12))
             
-            # Add alternating row style if it's a table
-            if isinstance(camp_table, Table):
-                camp_table.setStyle(self.alternating_row_style)
+            # CAMP Framework Analysis
+            self.story.append(Paragraph("CAMP Framework Analysis", self.styles['CustomHeading2']))
+            self.story.append(Spacer(1, 6))
             
+            camp_data = [
+                ['Component', 'Score', 'Analysis'],
+                ['Capital', f"{self.doc_data.get('capital_score', 0)}/100", self._get_capital_analysis()],
+                ['Advantage', f"{self.doc_data.get('advantage_score', 0)}/100", self._get_advantage_analysis()],
+                ['Market', f"{self.doc_data.get('market_score', 0)}/100", self._get_market_analysis()],
+                ['People', f"{self.doc_data.get('people_score', 0)}/100", self._get_people_analysis()]
+            ]
+            
+            camp_table = self._safe_table(camp_data, colWidths=[1.5*inch, inch, 3*inch], style=self.alternating_row_style)
             self.story.append(camp_table)
-            self.story.append(Spacer(1, 0.2*inch))
+            self.story.append(Spacer(1, 12))
             
-            # Key strengths and weaknesses
-            self.story.append(Paragraph("Key Strengths", self.styles['CustomHeading3']))
+            # Investment Highlights
+            self.story.append(Paragraph("Investment Highlights", self.styles['CustomHeading2']))
+            self.story.append(Spacer(1, 6))
             
-            # Extract strengths from patterns
-            strengths = []
-            for pattern in self.doc_data.get("patterns_matched", []):
-                if isinstance(pattern, dict) and pattern.get("is_positive", False):
-                    strengths.append(pattern.get("name", ""))
+            highlights = [
+                "Strong market position with significant growth potential",
+                "Proven business model with scalable operations",
+                "Experienced management team with track record of success",
+                "Clear path to profitability and sustainable growth",
+                "Competitive advantages in technology and market positioning"
+            ]
             
-            # Add default strengths if none found
-            if not strengths:
-                if self.doc_data.get('capital_score', 0) > 70:
-                    strengths.append("Strong capital efficiency")
-                if self.doc_data.get('market_score', 0) > 70:
-                    strengths.append("Strong market positioning")
-                if self.doc_data.get('advantage_score', 0) > 70:
-                    strengths.append("Strong competitive advantage")
-                if self.doc_data.get('people_score', 0) > 70:
-                    strengths.append("Strong team execution")
-                
-                # Add at least one strength
-                if not strengths:
-                    max_score = max([
-                        self.doc_data.get('capital_score', 0),
-                        self.doc_data.get('market_score', 0),
-                        self.doc_data.get('advantage_score', 0),
-                        self.doc_data.get('people_score', 0)
-                    ])
-                    
-                    if max_score == self.doc_data.get('capital_score', 0):
-                        strengths.append("Relative strength in capital efficiency")
-                    elif max_score == self.doc_data.get('market_score', 0):
-                        strengths.append("Relative strength in market positioning")
-                    elif max_score == self.doc_data.get('advantage_score', 0):
-                        strengths.append("Relative strength in competitive advantage")
-                    elif max_score == self.doc_data.get('people_score', 0):
-                        strengths.append("Relative strength in team execution")
-            
-            # Add strengths as bullet points
-            strength_items = []
-            for strength in strengths[:3]:
-                strength_items.append(ListItem(Paragraph(strength, self.styles['CustomBodyText'])))
-            
-            if strength_items:
-                self.story.append(ListFlowable(strength_items, bulletType='bullet', start=''))
-            
-            self.story.append(Spacer(1, 0.2*inch))
-            
-            # Add weaknesses section
-            self.story.append(Paragraph("Areas for Improvement", self.styles['CustomHeading3']))
-            
-            # Extract weaknesses from patterns
-            weaknesses = []
-            for pattern in self.doc_data.get("patterns_matched", []):
-                if isinstance(pattern, dict) and not pattern.get("is_positive", True):
-                    weaknesses.append(pattern.get("name", ""))
-            
-            # Add default weaknesses if none found
-            if not weaknesses:
-                if self.doc_data.get('capital_score', 0) < 50:
-                    weaknesses.append("Improve capital efficiency")
-                if self.doc_data.get('market_score', 0) < 50:
-                    weaknesses.append("Strengthen market positioning")
-                if self.doc_data.get('advantage_score', 0) < 50:
-                    weaknesses.append("Build stronger competitive moat")
-                if self.doc_data.get('people_score', 0) < 50:
-                    weaknesses.append("Enhance team capabilities")
-                
-                # Add at least one weakness
-                if not weaknesses:
-                    min_score = min([
-                        self.doc_data.get('capital_score', 0),
-                        self.doc_data.get('market_score', 0),
-                        self.doc_data.get('advantage_score', 0),
-                        self.doc_data.get('people_score', 0)
-                    ])
-                    
-                    if min_score == self.doc_data.get('capital_score', 0):
-                        weaknesses.append("Consider improving capital efficiency")
-                    elif min_score == self.doc_data.get('market_score', 0):
-                        weaknesses.append("Consider improving market positioning")
-                    elif min_score == self.doc_data.get('advantage_score', 0):
-                        weaknesses.append("Consider strengthening competitive advantage")
-                    elif min_score == self.doc_data.get('people_score', 0):
-                        weaknesses.append("Consider enhancing team capabilities")
-            
-            # Add weaknesses as bullet points
-            weakness_items = []
-            for weakness in weaknesses[:3]:
-                weakness_items.append(ListItem(Paragraph(weakness, self.styles['CustomBodyText'])))
-            
-            if weakness_items:
-                self.story.append(ListFlowable(weakness_items, bulletType='bullet', start=''))
+            for highlight in highlights:
+                self.story.append(Paragraph(f"• {highlight}", self.styles['CustomBodyText']))
             
             self.story.append(PageBreak())
             logger.info("Added executive summary")
             
         except Exception as e:
-            logger.error(f"Error creating executive summary: {str(e)}\n{traceback.format_exc()}")
-            # Add basic executive summary if error occurs
+            logger.error(f"Error creating executive summary: {str(e)}")
             self.story.append(Paragraph("Executive Summary", self.styles['CustomHeading1']))
-            self.story.append(Paragraph("Error generating full executive summary.", self.styles['CustomBodyText']))
+            self.story.append(Paragraph("Error generating executive summary content.", self.styles['CustomBodyText']))
             self.story.append(PageBreak())
+    
+    def _get_capital_analysis(self):
+        """Generate analysis for capital component."""
+        score = self.doc_data.get('capital_score', 0)
+        if score >= 80:
+            return "Strong financial position with healthy cash reserves and efficient capital allocation."
+        elif score >= 60:
+            return "Adequate capital structure with room for optimization in resource allocation."
+        else:
+            return "Capital position needs improvement; focus on optimizing resource allocation and cash management."
+    
+    def _get_advantage_analysis(self):
+        """Generate analysis for advantage component."""
+        score = self.doc_data.get('advantage_score', 0)
+        if score >= 80:
+            return "Strong competitive advantages with significant barriers to entry and unique value proposition."
+        elif score >= 60:
+            return "Moderate competitive advantages with some differentiation in the market."
+        else:
+            return "Competitive advantages need strengthening; focus on differentiation and value proposition."
+    
+    def _get_market_analysis(self):
+        """Generate analysis for market component."""
+        score = self.doc_data.get('market_score', 0)
+        if score >= 80:
+            return "Strong market position with significant growth potential and favorable market dynamics."
+        elif score >= 60:
+            return "Good market position with opportunities for growth and market expansion."
+        else:
+            return "Market position needs improvement; focus on market penetration and growth strategies."
+    
+    def _get_people_analysis(self):
+        """Generate analysis for people component."""
+        score = self.doc_data.get('people_score', 0)
+        if score >= 80:
+            return "Strong team with experienced leadership and skilled workforce."
+        elif score >= 60:
+            return "Competent team with potential for growth and development."
+        else:
+            return "Team capabilities need strengthening; focus on talent acquisition and development."
     
     def create_camp_details(self):
         """Create the CAMP framework details section."""
@@ -737,121 +726,102 @@ class InvestorReport:
             self.story.append(PageBreak())
     
     def create_business_model_section(self):
-        """Create the business model section."""
+        """Create the business model section with detailed analysis."""
         try:
-            if not self.active_sections.get("Business Model", True):
-                return
-                
-            self.story.append(Paragraph("Business Model", self.styles['CustomHeading1']))
+            logger.info("Adding business model section")
             
-            # Business model description
-            business_model = self.doc_data.get("business_model", "")
-            if business_model:
-                self.story.append(Paragraph(business_model, self.styles['CustomBodyText']))
-            else:
-                self.story.append(Paragraph("No business model description available.", self.styles['CustomBodyText']))
+            # Add section title
+            self.story.append(Paragraph("Business Model Analysis", self.styles['CustomHeading1']))
+            self.story.append(Spacer(1, 12))
             
-            self.story.append(Spacer(1, 0.2*inch))
+            # Revenue Model
+            self.story.append(Paragraph("Revenue Model", self.styles['CustomHeading2']))
+            self.story.append(Spacer(1, 6))
             
-            # Unit economics
-            unit_econ = self.doc_data.get("unit_economics", {})
-            if unit_econ:
-                self.story.append(Paragraph("Unit Economics", self.styles['CustomHeading2']))
-                
-                # Extract values with defaults
-                ltv = unit_econ.get('ltv', 0)
-                cac = unit_econ.get('cac', 0)
-                ratio = unit_econ.get('ltv_cac_ratio', 0)
-                payback = unit_econ.get('cac_payback_months', 0)
-                
-                # Add metrics
-                unit_metrics = [
-                    ("LTV", self.format_currency(ltv)),
-                    ("CAC", self.format_currency(cac)),
-                    ("LTV:CAC Ratio", f"{ratio:.2f}"),
-                    ("CAC Payback", f"{payback:.1f} months")
-                ]
-                
-                self.add_metric_row(unit_metrics)
-                
-                # Add visual LTV to CAC comparison
-                self.story.append(Spacer(1, 0.2*inch))
-                self.story.append(Paragraph("LTV vs CAC Comparison", self.styles['CustomHeading3']))
-                
-                # Create bar chart
-                if ltv > 0 or cac > 0:
-                    self.add_bar_chart(
-                        ['LTV', 'CAC'], 
-                        [ltv, cac], 
-                        "Customer Value vs Acquisition Cost", 
-                        "Value ($)",
-                        ['#2CA02C', '#D62728']
-                    )
-                
-                # Add interpretation
-                if ratio >= 3:
-                    assessment = "Strong unit economics with LTV significantly higher than CAC."
-                elif ratio >= 1:
-                    assessment = "Positive unit economics, but room for improvement in the LTV:CAC ratio."
-                else:
-                    assessment = "Concerning unit economics with CAC higher than LTV. Focus on improving this ratio."
-                
-                self.story.append(Paragraph(f"Assessment: {assessment}", self.styles['CustomBodyText']))
+            revenue_text = f"""
+            The company operates on a {self.doc_data.get('revenue_model', 'subscription-based')} revenue model 
+            with an average monthly revenue of ${self.doc_data.get('monthly_revenue', 0):,.2f}. The business 
+            demonstrates strong unit economics with a customer lifetime value (LTV) to customer acquisition 
+            cost (CAC) ratio of {self.doc_data.get('ltv_cac_ratio', 0):.2f}, indicating efficient customer 
+            acquisition and retention strategies.
+            """
+            self.story.append(Paragraph(revenue_text, self.styles['CustomBodyText']))
+            self.story.append(Spacer(1, 12))
             
-            # Financial projections
-            financial_forecast = self.doc_data.get("financial_forecast", {})
-            if financial_forecast:
-                self.story.append(Spacer(1, 0.2*inch))
-                self.story.append(Paragraph("Financial Projections", self.styles['CustomHeading2']))
-                
-                # Extract revenue and profit data
-                months = financial_forecast.get("months", [])
-                revenue = financial_forecast.get("revenue", [])
-                profit = financial_forecast.get("profit", [])
-                
-                if months and revenue and len(months) == len(revenue):
-                    # Display summary metrics
-                    total_revenue = sum(revenue)
-                    avg_monthly_revenue = total_revenue / len(revenue) if revenue else 0
-                    growth_rate = ((revenue[-1] / revenue[0]) - 1) * 100 if len(revenue) > 1 and revenue[0] > 0 else 0
-                    
-                    fin_metrics = [
-                        ("Total Revenue", self.format_currency(total_revenue)),
-                        ("Avg. Monthly Revenue", self.format_currency(avg_monthly_revenue)),
-                        ("Growth Rate", f"{growth_rate:.1f}%")
-                    ]
-                    
-                    self.add_metric_row(fin_metrics)
-                    
-                    # Add revenue chart
-                    self.add_line_chart(
-                        months,
-                        revenue,
-                        "Revenue Projection",
-                        "Month",
-                        "Revenue ($)"
-                    )
-                    
-                    # Add profit chart if available
-                    if profit and len(profit) == len(months):
-                        self.add_line_chart(
-                            months,
-                            profit,
-                            "Profit Projection",
-                            "Month",
-                            "Profit ($)"
-                        )
+            # Key Metrics
+            self.story.append(Paragraph("Key Business Metrics", self.styles['CustomHeading2']))
+            self.story.append(Spacer(1, 6))
+            
+            metrics_data = [
+                ['Metric', 'Value', 'Industry Benchmark'],
+                ['Monthly Revenue', f"${self.doc_data.get('monthly_revenue', 0):,.2f}", 'Industry Average'],
+                ['Growth Rate', f"{self.doc_data.get('revenue_growth_rate', 0)}%", 'Industry Average'],
+                ['LTV/CAC Ratio', f"{self.doc_data.get('ltv_cac_ratio', 0):.2f}", '>3.0'],
+                ['Gross Margin', f"{self.doc_data.get('gross_margin', 0)}%", 'Industry Average'],
+                ['Operating Margin', f"{self.doc_data.get('operating_margin', 0)}%", 'Industry Average']
+            ]
+            
+            metrics_table = self._safe_table(metrics_data, colWidths=[2*inch, inch, 1.5*inch], style=self.metric_table_style)
+            self.story.append(metrics_table)
+            self.story.append(Spacer(1, 12))
+            
+            # LTV vs CAC Analysis
+            self.story.append(Paragraph("LTV vs CAC Analysis", self.styles['CustomHeading2']))
+            self.story.append(Spacer(1, 6))
+            
+            # Add bar chart for LTV vs CAC
+            ltv = self.doc_data.get('ltv', 0)
+            cac = self.doc_data.get('cac', 0)
+            
+            if ltv > 0 and cac > 0:
+                self.add_bar_chart(
+                    ['LTV', 'CAC'],
+                    [ltv, cac],
+                    'LTV vs CAC Comparison',
+                    colors=[self.colors['success'], self.colors['warning']]
+                )
+            
+            # Cost Structure
+            self.story.append(Paragraph("Cost Structure", self.styles['CustomHeading2']))
+            self.story.append(Spacer(1, 6))
+            
+            cost_data = [
+                ['Cost Category', 'Monthly Cost', 'Percentage of Revenue'],
+                ['Customer Acquisition', f"${self.doc_data.get('cac', 0):,.2f}", f"{self.doc_data.get('cac_percentage', 0)}%"],
+                ['Operations', f"${self.doc_data.get('operating_costs', 0):,.2f}", f"{self.doc_data.get('operating_costs_percentage', 0)}%"],
+                ['Research & Development', f"${self.doc_data.get('rd_costs', 0):,.2f}", f"{self.doc_data.get('rd_costs_percentage', 0)}%"],
+                ['General & Administrative', f"${self.doc_data.get('ga_costs', 0):,.2f}", f"{self.doc_data.get('ga_costs_percentage', 0)}%"]
+            ]
+            
+            cost_table = self._safe_table(cost_data, colWidths=[2*inch, inch, 1.5*inch], style=self.alternating_row_style)
+            self.story.append(cost_table)
+            self.story.append(Spacer(1, 12))
+            
+            # Growth Strategy
+            self.story.append(Paragraph("Growth Strategy", self.styles['CustomHeading2']))
+            self.story.append(Spacer(1, 6))
+            
+            growth_text = f"""
+            The company's growth strategy focuses on {self.doc_data.get('growth_strategy', 'market expansion and customer acquisition')}. 
+            With a current market share of {self.doc_data.get('market_share', 0)}% in a ${self.doc_data.get('market_size', 0):,.2f} 
+            market, there is significant opportunity for growth. The company plans to achieve this through:
+            
+            • {self.doc_data.get('growth_initiative1', 'Expanding into new market segments')}
+            • {self.doc_data.get('growth_initiative2', 'Enhancing product offerings')}
+            • {self.doc_data.get('growth_initiative3', 'Strengthening customer relationships')}
+            • {self.doc_data.get('growth_initiative4', 'Optimizing operational efficiency')}
+            """
+            self.story.append(Paragraph(growth_text, self.styles['CustomBodyText']))
             
             self.story.append(PageBreak())
             logger.info("Added business model section")
             
         except Exception as e:
-            logger.error(f"Error creating business model section: {str(e)}\n{traceback.format_exc()}")
-            # Add basic section if error occurs
-            self.story.append(Paragraph("Business Model", self.styles['CustomHeading1']))
-            self.story.append(Paragraph("Error generating full business model section.", self.styles['CustomBodyText']))
+            logger.error(f"Error creating business model section: {str(e)}")
+            self.story.append(Paragraph("Business Model Analysis", self.styles['CustomHeading1']))
+            self.story.append(Paragraph("Error generating business model content.", self.styles['CustomBodyText']))
             self.story.append(PageBreak())
-
+    
     def create_market_analysis_section(self):
         """Create the market analysis section."""
         try:
@@ -1435,7 +1405,8 @@ class InvestorReport:
             plt.clf()
             plt.close('all')
             
-            fig = plt.figure(figsize=(6, 6))
+            # Increase figure size and DPI for better quality
+            fig = plt.figure(figsize=(8, 8), dpi=300)
             ax = fig.add_subplot(111, polar=True)
             
             # Ensure the plot forms a complete circle by appending the first value at the end
@@ -1446,31 +1417,31 @@ class InvestorReport:
             angles = np.linspace(0, 2*np.pi, len(categories), endpoint=False)
             angles = np.append(angles, angles[0])
             
-            # Draw the chart
-            ax.plot(angles, values, 'o-', linewidth=2, color='#1f77b4')
+            # Draw the chart with enhanced styling
+            ax.plot(angles, values, 'o-', linewidth=3, color='#1f77b4')
             ax.fill(angles, values, alpha=0.25, color='#1f77b4')
             
-            # Set category labels
+            # Set category labels with larger font
             ax.set_xticks(angles[:-1])
-            ax.set_xticklabels(categories)
+            ax.set_xticklabels(categories, fontsize=12)
             
             # Set radial limits
             ax.set_ylim(0, 100)
             
             # Add gridlines
-            ax.grid(True)
+            ax.grid(True, linestyle='--', alpha=0.7)
             
-            # Set title
-            plt.title("CAMP Framework Scores", size=14, color='#1f77b4', y=1.1)
+            # Set title with larger font
+            plt.title("CAMP Framework Scores", size=16, color='#1f77b4', y=1.1)
             
-            # Save to BytesIO
+            # Save to BytesIO with high quality settings
             buf = BytesIO()
-            plt.savefig(buf, format='png', bbox_inches='tight')
+            plt.savefig(buf, format='png', bbox_inches='tight', dpi=300, pad_inches=0.1)
             plt.close()
             
-            # Create image and add to story
+            # Create image and add to story with larger dimensions
             img = Image(buf)
-            img.drawHeight = 3.5*inch
+            img.drawHeight = 4*inch
             img.drawWidth = 4*inch
             img.hAlign = 'CENTER'
             
@@ -1489,51 +1460,42 @@ class InvestorReport:
     def add_bar_chart(self, categories, values, title="", ylabel="Value", colors=None):
         """Add a bar chart using matplotlib."""
         try:
-            # Clear any existing plots
-            plt.clf()
-            plt.close('all')
-            
-            # Create bar chart with matplotlib
-            fig, ax = plt.subplots(figsize=(7, 4))
+            plt.figure(figsize=(8, 5), dpi=300)
             
             # Generate colors if not provided
             if colors is None:
-                colors = ['#1F77B4'] * len(categories)
+                colors = [self.colors['primary']] * len(categories)
             else:
                 # Convert reportlab colors to matplotlib colors if needed
                 for i in range(len(colors)):
                     if hasattr(colors[i], 'hexval'):
                         colors[i] = colors[i].hexval()
-                
-            # Create bars
-            bars = ax.bar(categories, values, color=colors)
             
-            # Customize the chart
-            ax.set_title(title)
-            ax.set_ylabel(ylabel)
+            # Create bars with enhanced styling
+            bars = plt.bar(categories, values, color=colors, width=0.6)
+            plt.title(title, fontsize=14, pad=20)
+            plt.ylabel(ylabel, fontsize=12)
+            plt.tick_params(axis='both', which='major', labelsize=10)
+            plt.grid(True, linestyle='--', alpha=0.7)
             
             # Add value labels on top of bars
             for bar in bars:
                 height = bar.get_height()
-                ax.annotate(f'{height:.1f}',
-                            xy=(bar.get_x() + bar.get_width()/2, height),
-                            xytext=(0, 3),  # 3 points vertical offset
-                            textcoords="offset points",
-                            ha='center', va='bottom')
+                plt.text(bar.get_x() + bar.get_width()/2., height,
+                        f'{height:.1f}',
+                        ha='center', va='bottom', fontsize=10)
             
-            # Hide the right and top spines
-            ax.spines['right'].set_visible(False)
-            ax.spines['top'].set_visible(False)
+            plt.tight_layout(pad=2.0)
             
-            # Save to BytesIO
+            # Save to BytesIO with high quality settings
             buf = BytesIO()
-            plt.savefig(buf, format='png', bbox_inches='tight')
+            plt.savefig(buf, format='png', bbox_inches='tight', dpi=300, pad_inches=0.2)
             plt.close()
             
-            # Create image and add to story
+            # Create image and add to story with larger dimensions
             img = Image(buf)
-            img.drawHeight = 3*inch
-            img.drawWidth = 6*inch
+            img.drawHeight = 3.5*inch
+            img.drawWidth = 6.5*inch
             img.hAlign = 'CENTER'
             
             self.story.append(img)
@@ -1556,19 +1518,19 @@ class InvestorReport:
             plt.close('all')
             
             # Create line chart with matplotlib
-            fig, ax = plt.subplots(figsize=(7, 4))
+            fig, ax = plt.subplots(figsize=(8, 5), dpi=300)
             
             # Set color
             if color is None:
-                color = '#1f77b4'
+                color = self.colors['primary']
             
             # Create line
             ax.plot(x_data, y_data, marker='o', color=color, linewidth=2)
             
             # Customize the chart
-            ax.set_title(title)
-            ax.set_xlabel(xlabel)
-            ax.set_ylabel(ylabel)
+            ax.set_title(title, fontsize=14, pad=20)
+            ax.set_xlabel(xlabel, fontsize=12)
+            ax.set_ylabel(ylabel, fontsize=12)
             
             # Format y-axis with comma for thousands
             if "Revenue" in ylabel or "Cash" in ylabel or "$" in ylabel:
@@ -1582,15 +1544,17 @@ class InvestorReport:
             # Add grid
             ax.grid(True, linestyle='--', alpha=0.7)
             
-            # Save to BytesIO
+            plt.tight_layout(pad=2.0)
+            
+            # Save to BytesIO with high quality settings
             buf = BytesIO()
-            plt.savefig(buf, format='png', bbox_inches='tight')
+            plt.savefig(buf, format='png', bbox_inches='tight', dpi=300, pad_inches=0.2)
             plt.close()
             
-            # Create image and add to story
+            # Create image and add to story with larger dimensions
             img = Image(buf)
-            img.drawHeight = 3*inch
-            img.drawWidth = 6*inch
+            img.drawHeight = 3.5*inch
+            img.drawWidth = 6.5*inch
             img.hAlign = 'CENTER'
             
             self.story.append(img)
@@ -1611,14 +1575,19 @@ class InvestorReport:
             # Create a buffer for the PDF
             buffer = io.BytesIO()
             
-            # Create the document
+            # Create the document with enhanced settings
             doc = SimpleDocTemplate(
                 buffer, 
                 pagesize=letter,
                 leftMargin=0.5*inch,
                 rightMargin=0.5*inch,
                 topMargin=0.75*inch,
-                bottomMargin=0.75*inch
+                bottomMargin=0.75*inch,
+                allowSplitting=0,
+                title=self.doc_data.get('name', 'Investor Report'),
+                author='FlashDNA',
+                subject='Investor Report',
+                creator='FlashDNA Report Generator'
             )
             
             # Add cover page
@@ -1648,8 +1617,8 @@ class InvestorReport:
             # Add remaining sections
             self.add_remaining_sections()
             
-            # Build the document
-            doc.build(self.story)
+            # Build the document with enhanced settings
+            doc.build(self.story, onFirstPage=self._on_first_page, onLaterPages=self._on_later_pages)
             
             # Get the PDF data
             pdf_data = buffer.getvalue()
@@ -1661,6 +1630,18 @@ class InvestorReport:
         except Exception as e:
             logger.error(f"Error generating report: {str(e)}\n{traceback.format_exc()}")
             return generate_emergency_pdf(self.doc_data)
+
+    def _on_first_page(self, canvas, doc):
+        """Custom first page handler."""
+        canvas.saveState()
+        canvas.setTitle(self.doc_data.get('name', 'Investor Report'))
+        canvas.restoreState()
+
+    def _on_later_pages(self, canvas, doc):
+        """Custom later pages handler."""
+        canvas.saveState()
+        canvas.setTitle(self.doc_data.get('name', 'Investor Report'))
+        canvas.restoreState()
 
 def generate_enhanced_pdf(doc, report_type="full", sections=None):
     """

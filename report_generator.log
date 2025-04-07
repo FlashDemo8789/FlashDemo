@@ -1,0 +1,630 @@
+2025-04-07 12:13:06,077 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 12:13:06,078 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 12:13:06,082 - investor_report - ERROR - Error in generate_enhanced_pdf: "Style 'Title' already defined in stylesheet"
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1597, in generate_enhanced_pdf
+    report = InvestorReport(doc, report_type, sections)
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 90, in __init__
+    self._setup_custom_styles()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 126, in _setup_custom_styles
+    self.styles.add(ParagraphStyle(
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+        name='Title',
+        ^^^^^^^^^^^^^
+    ...<3 lines>...
+        textColor=BRAND_PRIMARY
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ))
+    ^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/lib/styles.py", line 254, in add
+    raise KeyError("Style '%s' already defined in stylesheet" % key)
+KeyError: "Style 'Title' already defined in stylesheet"
+
+2025-04-07 12:13:06,082 - investor_report - INFO - Generating emergency PDF
+2025-04-07 12:13:06,090 - pdf_tester - INFO - Generated PDF with 2229 bytes
+2025-04-07 12:13:06,091 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 12:13:36,732 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 12:13:36,732 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 12:13:36,734 - investor_report - ERROR - Error in generate_enhanced_pdf: "Style 'Heading1' already defined in stylesheet"
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1597, in generate_enhanced_pdf
+    report = InvestorReport(doc, report_type, sections)
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 90, in __init__
+    self._setup_custom_styles()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 135, in _setup_custom_styles
+    self.styles.add(ParagraphStyle(
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+        name='Heading1',
+        ^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        spaceAfter=12
+        ^^^^^^^^^^^^^
+    ))
+    ^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/lib/styles.py", line 254, in add
+    raise KeyError("Style '%s' already defined in stylesheet" % key)
+KeyError: "Style 'Heading1' already defined in stylesheet"
+
+2025-04-07 12:13:36,735 - investor_report - INFO - Generating emergency PDF
+2025-04-07 12:13:36,743 - pdf_tester - INFO - Generated PDF with 2229 bytes
+2025-04-07 12:13:36,744 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 12:14:48,101 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 12:14:48,101 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 12:14:48,104 - investor_report - ERROR - Error in generate_enhanced_pdf: "Style 'BodyText' already defined in stylesheet"
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1597, in generate_enhanced_pdf
+    report = InvestorReport(doc, report_type, sections)
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 90, in __init__
+    self._setup_custom_styles()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 163, in _setup_custom_styles
+    self.styles.add(ParagraphStyle(
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+        name='BodyText',
+        ^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        spaceAfter=6
+        ^^^^^^^^^^^^
+    ))
+    ^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/lib/styles.py", line 254, in add
+    raise KeyError("Style '%s' already defined in stylesheet" % key)
+KeyError: "Style 'BodyText' already defined in stylesheet"
+
+2025-04-07 12:14:48,104 - investor_report - INFO - Generating emergency PDF
+2025-04-07 12:14:48,105 - investor_report - ERROR - Emergency PDF generation also failed: "Style 'CustomHeading2' not found in stylesheet"
+2025-04-07 12:14:48,109 - pdf_tester - INFO - Generated PDF with 1597 bytes
+2025-04-07 12:14:48,110 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 12:16:42,492 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 12:16:42,492 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 12:16:42,493 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 12:16:42,493 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 12:16:42,495 - investor_report - INFO - Added cover page
+2025-04-07 12:16:42,496 - investor_report - INFO - Added table of contents
+2025-04-07 12:16:42,713 - investor_report - INFO - Added CAMP radar chart
+2025-04-07 12:16:42,714 - investor_report - INFO - Added executive summary
+2025-04-07 12:16:42,715 - investor_report - INFO - Added CAMP details
+2025-04-07 12:16:42,716 - investor_report - INFO - Added business model section
+2025-04-07 12:16:42,716 - investor_report - INFO - Added market analysis section
+2025-04-07 12:16:42,738 - investor_report - ERROR - Error creating bar chart: 'facecolor' or 'color' argument must be a valid color orsequence of colors.
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/axes/_axes.py", line 2365, in _parse_bar_color_args
+    facecolor = mcolors.to_rgba_array(facecolor)
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/colors.py", line 513, in to_rgba_array
+    rgba = np.array([to_rgba(cc) for cc in c])
+                     ~~~~~~~^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/colors.py", line 317, in to_rgba
+    rgba = _to_rgba_no_colorcycle(c, alpha)
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/colors.py", line 401, in _to_rgba_no_colorcycle
+    raise ValueError(f"Invalid RGBA argument: {orig_c!r}")
+ValueError: Invalid RGBA argument: Color(.172549,.627451,.172549,1)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1425, in add_bar_chart
+    bars = ax.bar(categories, values, color=colors)
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/__init__.py", line 1521, in inner
+    return func(
+        ax,
+        *map(cbook.sanitize_sequence, args),
+        **{k: cbook.sanitize_sequence(v) for k, v in kwargs.items()})
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/axes/_axes.py", line 2510, in bar
+    facecolor, edgecolor = self._parse_bar_color_args(kwargs)
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/axes/_axes.py", line 2367, in _parse_bar_color_args
+    raise ValueError(
+    ...<2 lines>...
+    ) from err
+ValueError: 'facecolor' or 'color' argument must be a valid color orsequence of colors.
+
+2025-04-07 12:16:42,740 - investor_report - INFO - Added team assessment section
+2025-04-07 12:16:42,740 - investor_report - INFO - Added competitive analysis section
+2025-04-07 12:16:42,740 - investor_report - INFO - Added growth metrics section
+2025-04-07 12:16:42,740 - investor_report - INFO - Added risk assessment section
+2025-04-07 12:16:42,740 - investor_report - INFO - Added exit strategy section
+2025-04-07 12:16:42,741 - investor_report - INFO - Added technical assessment section
+2025-04-07 12:16:42,819 - investor_report - ERROR - Error generating report: list index out of range
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1568, in generate_report
+    doc.build(self.story)
+    ~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1322, in build
+    BaseDocTemplate.build(self,flowables, canvasmaker=canvasmaker)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1083, in build
+    self.handle_flowable(flowables)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 932, in handle_flowable
+    if frame.add(f, canv, trySplit=self.allowSplitting):
+       ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/frames.py", line 201, in _add
+    flowable.drawOn(canv, self._x + self._leftExtraIndent, y, _sW=aW-w)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 112, in drawOn
+    self._drawOn(canvas)
+    ~~~~~~~~~~~~^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 93, in _drawOn
+    self.draw()#this is the bit you overload
+    ~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/tables.py", line 2286, in draw
+    self._drawBkgrnd()
+    ~~~~~~~~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/tables.py", line 2352, in _drawBkgrnd
+    y0 = rowpositions[sr]
+         ~~~~~~~~~~~~^^^^
+IndexError: list index out of range
+
+2025-04-07 12:16:42,819 - investor_report - INFO - Generating emergency PDF
+2025-04-07 12:16:42,827 - pdf_tester - INFO - Generated PDF with 2229 bytes
+2025-04-07 12:16:42,828 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 12:18:51,915 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 12:18:51,915 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 12:18:51,916 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 12:18:51,916 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 12:18:51,918 - investor_report - INFO - Added cover page
+2025-04-07 12:18:51,919 - investor_report - INFO - Added table of contents
+2025-04-07 12:18:52,165 - investor_report - INFO - Added CAMP radar chart
+2025-04-07 12:18:52,168 - investor_report - INFO - Added executive summary
+2025-04-07 12:18:52,169 - investor_report - INFO - Added CAMP details
+2025-04-07 12:18:52,169 - investor_report - INFO - Added business model section
+2025-04-07 12:18:52,170 - investor_report - INFO - Added market analysis section
+2025-04-07 12:18:52,357 - investor_report - INFO - Added bar chart: Leadership Positions
+2025-04-07 12:18:52,357 - investor_report - INFO - Added team assessment section
+2025-04-07 12:18:52,357 - investor_report - INFO - Added competitive analysis section
+2025-04-07 12:18:52,357 - investor_report - INFO - Added growth metrics section
+2025-04-07 12:18:52,357 - investor_report - INFO - Added risk assessment section
+2025-04-07 12:18:52,357 - investor_report - INFO - Added exit strategy section
+2025-04-07 12:18:52,358 - investor_report - INFO - Added technical assessment section
+2025-04-07 12:18:52,428 - investor_report - ERROR - Error generating report: list index out of range
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1574, in generate_report
+    doc.build(self.story)
+    ~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1322, in build
+    BaseDocTemplate.build(self,flowables, canvasmaker=canvasmaker)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1083, in build
+    self.handle_flowable(flowables)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 932, in handle_flowable
+    if frame.add(f, canv, trySplit=self.allowSplitting):
+       ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/frames.py", line 201, in _add
+    flowable.drawOn(canv, self._x + self._leftExtraIndent, y, _sW=aW-w)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 112, in drawOn
+    self._drawOn(canvas)
+    ~~~~~~~~~~~~^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 93, in _drawOn
+    self.draw()#this is the bit you overload
+    ~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/tables.py", line 2286, in draw
+    self._drawBkgrnd()
+    ~~~~~~~~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/tables.py", line 2352, in _drawBkgrnd
+    y0 = rowpositions[sr]
+         ~~~~~~~~~~~~^^^^
+IndexError: list index out of range
+
+2025-04-07 12:18:52,429 - investor_report - INFO - Generating emergency PDF
+2025-04-07 12:18:52,438 - pdf_tester - INFO - Generated PDF with 2229 bytes
+2025-04-07 12:18:52,439 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 12:20:38,209 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 12:20:38,209 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 12:20:38,210 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 12:20:38,210 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 12:20:38,211 - investor_report - INFO - Added cover page
+2025-04-07 12:20:38,212 - investor_report - INFO - Added table of contents
+2025-04-07 12:20:38,447 - investor_report - INFO - Added CAMP radar chart
+2025-04-07 12:20:38,448 - investor_report - INFO - Added executive summary
+2025-04-07 12:20:38,449 - investor_report - INFO - Added CAMP details
+2025-04-07 12:20:38,450 - investor_report - INFO - Added business model section
+2025-04-07 12:20:38,450 - investor_report - INFO - Added market analysis section
+2025-04-07 12:20:38,656 - investor_report - INFO - Added bar chart: Leadership Positions
+2025-04-07 12:20:38,657 - investor_report - INFO - Added team assessment section
+2025-04-07 12:20:38,657 - investor_report - INFO - Added competitive analysis section
+2025-04-07 12:20:38,657 - investor_report - INFO - Added growth metrics section
+2025-04-07 12:20:38,658 - investor_report - INFO - Added risk assessment section
+2025-04-07 12:20:38,658 - investor_report - INFO - Added exit strategy section
+2025-04-07 12:20:38,658 - investor_report - INFO - Added technical assessment section
+2025-04-07 12:20:38,755 - investor_report - ERROR - Error generating report: list index out of range
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1605, in generate_report
+    doc.build(self.story)
+    ~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1322, in build
+    BaseDocTemplate.build(self,flowables, canvasmaker=canvasmaker)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1083, in build
+    self.handle_flowable(flowables)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 932, in handle_flowable
+    if frame.add(f, canv, trySplit=self.allowSplitting):
+       ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/frames.py", line 201, in _add
+    flowable.drawOn(canv, self._x + self._leftExtraIndent, y, _sW=aW-w)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 112, in drawOn
+    self._drawOn(canvas)
+    ~~~~~~~~~~~~^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 93, in _drawOn
+    self.draw()#this is the bit you overload
+    ~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/tables.py", line 2286, in draw
+    self._drawBkgrnd()
+    ~~~~~~~~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/tables.py", line 2352, in _drawBkgrnd
+    y0 = rowpositions[sr]
+         ~~~~~~~~~~~~^^^^
+IndexError: list index out of range
+
+2025-04-07 12:20:38,756 - investor_report - INFO - Generating emergency PDF
+2025-04-07 12:20:38,764 - pdf_tester - INFO - Generated PDF with 2229 bytes
+2025-04-07 12:20:38,765 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 12:21:03,251 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 12:21:03,251 - investor_report - INFO - Generating emergency PDF
+2025-04-07 12:21:03,259 - pdf_tester - INFO - Generated PDF with 2229 bytes
+2025-04-07 12:21:03,260 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 13:06:47,709 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 13:06:47,709 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 13:06:47,709 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 13:06:47,710 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 13:06:47,710 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 13:06:47,712 - investor_report - INFO - Added cover page
+2025-04-07 13:06:47,713 - investor_report - INFO - Added table of contents
+2025-04-07 13:06:48,364 - investor_report - INFO - Added CAMP radar chart
+2025-04-07 13:06:48,374 - investor_report - INFO - Added executive summary
+2025-04-07 13:06:48,376 - investor_report - INFO - Added CAMP details
+2025-04-07 13:06:48,376 - investor_report - INFO - Added business model section
+2025-04-07 13:06:48,377 - investor_report - INFO - Added market analysis section
+2025-04-07 13:06:48,843 - investor_report - INFO - Added bar chart: Leadership Positions
+2025-04-07 13:06:48,843 - investor_report - INFO - Added team assessment section
+2025-04-07 13:06:48,844 - investor_report - INFO - Added competitive analysis section
+2025-04-07 13:06:48,844 - investor_report - INFO - Added growth metrics section
+2025-04-07 13:06:48,845 - investor_report - INFO - Added risk assessment section
+2025-04-07 13:06:48,845 - investor_report - INFO - Added exit strategy section
+2025-04-07 13:06:48,845 - investor_report - INFO - Added technical assessment section
+2025-04-07 13:06:49,137 - investor_report - ERROR - Error generating report: list index out of range
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1605, in generate_report
+    doc.build(self.story)
+    ~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1322, in build
+    BaseDocTemplate.build(self,flowables, canvasmaker=canvasmaker)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1083, in build
+    self.handle_flowable(flowables)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 932, in handle_flowable
+    if frame.add(f, canv, trySplit=self.allowSplitting):
+       ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/frames.py", line 201, in _add
+    flowable.drawOn(canv, self._x + self._leftExtraIndent, y, _sW=aW-w)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 112, in drawOn
+    self._drawOn(canvas)
+    ~~~~~~~~~~~~^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 93, in _drawOn
+    self.draw()#this is the bit you overload
+    ~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/tables.py", line 2286, in draw
+    self._drawBkgrnd()
+    ~~~~~~~~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/platypus/tables.py", line 2352, in _drawBkgrnd
+    y0 = rowpositions[sr]
+         ~~~~~~~~~~~~^^^^
+IndexError: list index out of range
+
+2025-04-07 13:06:49,141 - investor_report - INFO - Generating emergency PDF
+2025-04-07 13:06:49,248 - pdf_tester - INFO - Generated enhanced PDF with 2229 bytes
+2025-04-07 13:06:49,252 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 18:23:17,718 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 18:23:17,719 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 18:23:17,720 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 18:23:17,724 - investor_report - ERROR - Error in generate_enhanced_pdf: 'dict' object has no attribute 'add'
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1635, in generate_enhanced_pdf
+    report = InvestorReport(doc, report_type, sections)
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 88, in __init__
+    self._setup_custom_styles()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 136, in _setup_custom_styles
+    self.styles.add(ParagraphStyle(
+    ^^^^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute 'add'
+
+2025-04-07 18:23:17,724 - investor_report - INFO - Trying simplified report generation
+2025-04-07 18:23:17,737 - investor_report - INFO - Successfully generated simplified report
+2025-04-07 18:23:17,738 - pdf_tester - INFO - Generated enhanced PDF with 1820 bytes
+2025-04-07 18:23:17,739 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 18:23:40,522 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 18:23:40,522 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 18:23:40,523 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 18:23:40,525 - investor_report - ERROR - Error in generate_enhanced_pdf: 'StyleSheet1' object does not support item assignment
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1602, in generate_enhanced_pdf
+    report = InvestorReport(doc, report_type, sections)
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 88, in __init__
+    self._setup_custom_styles()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 139, in _setup_custom_styles
+    self.styles['CustomTitle'] = ParagraphStyle(
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^
+TypeError: 'StyleSheet1' object does not support item assignment
+
+2025-04-07 18:23:40,525 - investor_report - INFO - Trying simplified report generation
+2025-04-07 18:23:40,532 - investor_report - INFO - Successfully generated simplified report
+2025-04-07 18:23:40,533 - pdf_tester - INFO - Generated enhanced PDF with 1820 bytes
+2025-04-07 18:23:40,533 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 18:24:30,349 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 18:24:30,349 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 18:24:30,350 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 18:24:30,350 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 18:24:30,351 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 18:24:30,352 - investor_report - INFO - Added cover page
+2025-04-07 18:24:30,353 - investor_report - INFO - Added table of contents
+2025-04-07 18:24:30,610 - investor_report - INFO - Added CAMP radar chart
+2025-04-07 18:24:30,612 - investor_report - ERROR - Error creating executive summary: "Style 'CustomHeading3' not found in stylesheet"
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/lib/styles.py", line 231, in __getitem__
+    return self.byAlias[key]
+           ~~~~~~~~~~~~^^^^^
+KeyError: 'CustomHeading3'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/lib/styles.py", line 234, in __getitem__
+    return self.byName[key]
+           ~~~~~~~~~~~^^^^^
+KeyError: 'CustomHeading3'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 465, in create_executive_summary
+    self.story.append(Paragraph("CAMP Framework Scores", self.styles['CustomHeading3']))
+                                                         ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/lib/styles.py", line 236, in __getitem__
+    raise KeyError("Style '%s' not found in stylesheet" % key)
+KeyError: "Style 'CustomHeading3' not found in stylesheet"
+
+2025-04-07 18:24:30,615 - investor_report - ERROR - Error creating CAMP details: "Style 'CustomHeading3' not found in stylesheet"
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/lib/styles.py", line 231, in __getitem__
+    return self.byAlias[key]
+           ~~~~~~~~~~~~^^^^^
+KeyError: 'CustomHeading3'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/lib/styles.py", line 234, in __getitem__
+    return self.byName[key]
+           ~~~~~~~~~~~^^^^^
+KeyError: 'CustomHeading3'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 598, in create_camp_details
+    self.story.append(Paragraph(f"Score: {self.doc_data.get('capital_score', 0):.1f}/100", self.styles['CustomHeading3']))
+                                                                                           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/reportlab/lib/styles.py", line 236, in __getitem__
+    raise KeyError("Style '%s' not found in stylesheet" % key)
+KeyError: "Style 'CustomHeading3' not found in stylesheet"
+
+2025-04-07 18:24:30,624 - investor_report - INFO - Added business model section
+2025-04-07 18:24:30,624 - investor_report - INFO - Added market analysis section
+2025-04-07 18:24:30,817 - investor_report - INFO - Added bar chart: Leadership Positions
+2025-04-07 18:24:30,817 - investor_report - INFO - Added team assessment section
+2025-04-07 18:24:30,818 - investor_report - INFO - Added competitive analysis section
+2025-04-07 18:24:30,818 - investor_report - INFO - Added growth metrics section
+2025-04-07 18:24:30,818 - investor_report - INFO - Added risk assessment section
+2025-04-07 18:24:30,819 - investor_report - INFO - Added exit strategy section
+2025-04-07 18:24:30,819 - investor_report - INFO - Added technical assessment section
+2025-04-07 18:24:30,924 - investor_report - INFO - PDF report generation completed successfully
+2025-04-07 18:24:30,925 - pdf_tester - INFO - Generated enhanced PDF with 91807 bytes
+2025-04-07 18:24:30,925 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 18:25:19,043 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 18:25:19,043 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 18:25:19,044 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 18:25:19,044 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 18:25:19,044 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 18:25:19,046 - investor_report - INFO - Added cover page
+2025-04-07 18:25:19,046 - investor_report - INFO - Added table of contents
+2025-04-07 18:25:19,269 - investor_report - INFO - Added CAMP radar chart
+2025-04-07 18:25:19,271 - investor_report - ERROR - Error creating executive summary: 'InvestorReport' object has no attribute 'alternating_row_style'
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 508, in create_executive_summary
+    camp_table.setStyle(self.alternating_row_style)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'InvestorReport' object has no attribute 'alternating_row_style'
+
+2025-04-07 18:25:19,273 - investor_report - INFO - Added CAMP details
+2025-04-07 18:25:19,273 - investor_report - INFO - Added business model section
+2025-04-07 18:25:19,273 - investor_report - INFO - Added market analysis section
+2025-04-07 18:25:19,471 - investor_report - INFO - Added bar chart: Leadership Positions
+2025-04-07 18:25:19,472 - investor_report - INFO - Added team assessment section
+2025-04-07 18:25:19,472 - investor_report - INFO - Added competitive analysis section
+2025-04-07 18:25:19,472 - investor_report - INFO - Added growth metrics section
+2025-04-07 18:25:19,472 - investor_report - INFO - Added risk assessment section
+2025-04-07 18:25:19,473 - investor_report - INFO - Added exit strategy section
+2025-04-07 18:25:19,473 - investor_report - INFO - Added technical assessment section
+2025-04-07 18:25:19,586 - investor_report - INFO - PDF report generation completed successfully
+2025-04-07 18:25:19,586 - pdf_tester - INFO - Generated enhanced PDF with 92653 bytes
+2025-04-07 18:25:19,587 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 18:26:20,441 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 18:26:20,441 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 18:26:20,441 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 18:26:20,442 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 18:26:20,442 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 18:26:20,443 - investor_report - INFO - Added cover page
+2025-04-07 18:26:20,444 - investor_report - INFO - Added table of contents
+2025-04-07 18:26:20,662 - investor_report - INFO - Added CAMP radar chart
+2025-04-07 18:26:20,663 - investor_report - INFO - Added executive summary
+2025-04-07 18:26:20,664 - investor_report - INFO - Added CAMP details
+2025-04-07 18:26:20,664 - investor_report - INFO - Added business model section
+2025-04-07 18:26:20,664 - investor_report - INFO - Added market analysis section
+2025-04-07 18:26:20,850 - investor_report - INFO - Added bar chart: Leadership Positions
+2025-04-07 18:26:20,850 - investor_report - INFO - Added team assessment section
+2025-04-07 18:26:20,850 - investor_report - INFO - Added competitive analysis section
+2025-04-07 18:26:20,850 - investor_report - INFO - Added growth metrics section
+2025-04-07 18:26:20,850 - investor_report - INFO - Added risk assessment section
+2025-04-07 18:26:20,850 - investor_report - INFO - Added exit strategy section
+2025-04-07 18:26:20,851 - investor_report - INFO - Added technical assessment section
+2025-04-07 18:26:20,974 - investor_report - INFO - PDF report generation completed successfully
+2025-04-07 18:26:20,975 - pdf_tester - INFO - Generated enhanced PDF with 93610 bytes
+2025-04-07 18:26:20,975 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 19:49:10,916 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 19:49:10,917 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 19:49:10,917 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 19:49:10,918 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 19:49:10,919 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 19:49:10,921 - investor_report - INFO - Added cover page
+2025-04-07 19:49:10,922 - investor_report - INFO - Added table of contents
+2025-04-07 19:49:10,922 - investor_report - INFO - Adding executive summary
+2025-04-07 19:49:10,923 - investor_report - INFO - Added executive summary
+2025-04-07 19:49:10,924 - investor_report - INFO - Added CAMP details
+2025-04-07 19:49:10,924 - investor_report - INFO - Adding business model section
+2025-04-07 19:49:10,925 - investor_report - INFO - Added business model section
+2025-04-07 19:49:10,926 - investor_report - INFO - Added market analysis section
+2025-04-07 19:49:11,124 - investor_report - INFO - Added bar chart: Leadership Positions
+2025-04-07 19:49:11,124 - investor_report - INFO - Added team assessment section
+2025-04-07 19:49:11,124 - investor_report - INFO - Added competitive analysis section
+2025-04-07 19:49:11,124 - investor_report - INFO - Added growth metrics section
+2025-04-07 19:49:11,124 - investor_report - INFO - Added risk assessment section
+2025-04-07 19:49:11,124 - investor_report - INFO - Added exit strategy section
+2025-04-07 19:49:11,125 - investor_report - INFO - Added technical assessment section
+2025-04-07 19:49:11,188 - investor_report - INFO - PDF report generation completed successfully
+2025-04-07 19:49:11,188 - pdf_tester - INFO - Generated enhanced PDF with 37195 bytes
+2025-04-07 19:49:11,188 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 19:52:01,211 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 19:52:01,211 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 19:52:01,211 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 19:52:01,212 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 19:52:01,212 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 19:52:01,214 - investor_report - INFO - Added cover page
+2025-04-07 19:52:01,214 - investor_report - INFO - Added table of contents
+2025-04-07 19:52:01,215 - investor_report - INFO - Adding executive summary
+2025-04-07 19:52:01,216 - investor_report - INFO - Added executive summary
+2025-04-07 19:52:01,217 - investor_report - INFO - Added CAMP details
+2025-04-07 19:52:01,217 - investor_report - INFO - Adding business model section
+2025-04-07 19:52:01,218 - investor_report - INFO - Added business model section
+2025-04-07 19:52:01,218 - investor_report - INFO - Added market analysis section
+2025-04-07 19:52:01,363 - investor_report - ERROR - Error creating bar chart: FigureCanvasAgg.print_png() got an unexpected keyword argument 'quality'
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 1503, in add_bar_chart
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=300, quality=100)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/pyplot.py", line 1243, in savefig
+    res = fig.savefig(*args, **kwargs)  # type: ignore[func-returns-value]
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/figure.py", line 3490, in savefig
+    self.canvas.print_figure(fname, **kwargs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/backend_bases.py", line 2184, in print_figure
+    result = print_method(
+        filename,
+    ...<3 lines>...
+        bbox_inches_restore=_bbox_inches_restore,
+        **kwargs)
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/.venv/lib/python3.13/site-packages/matplotlib/backend_bases.py", line 2040, in <lambda>
+    print_method = functools.wraps(meth)(lambda *args, **kwargs: meth(
+                                                                 ~~~~^
+        *args, **{k: v for k, v in kwargs.items() if k not in skip}))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: FigureCanvasAgg.print_png() got an unexpected keyword argument 'quality'
+
+2025-04-07 19:52:01,363 - investor_report - INFO - Added team assessment section
+2025-04-07 19:52:01,363 - investor_report - INFO - Added competitive analysis section
+2025-04-07 19:52:01,364 - investor_report - INFO - Added growth metrics section
+2025-04-07 19:52:01,364 - investor_report - INFO - Added risk assessment section
+2025-04-07 19:52:01,364 - investor_report - INFO - Added exit strategy section
+2025-04-07 19:52:01,364 - investor_report - INFO - Added technical assessment section
+2025-04-07 19:52:01,413 - investor_report - INFO - PDF report generation completed successfully
+2025-04-07 19:52:01,413 - pdf_tester - INFO - Generated enhanced PDF with 22489 bytes
+2025-04-07 19:52:01,413 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 19:54:07,866 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 19:54:07,866 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 19:54:07,866 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 19:54:07,867 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 19:54:07,867 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 19:54:07,868 - investor_report - INFO - Added cover page
+2025-04-07 19:54:07,869 - investor_report - INFO - Added table of contents
+2025-04-07 19:54:07,869 - investor_report - INFO - Adding executive summary
+2025-04-07 19:54:07,870 - investor_report - INFO - Added executive summary
+2025-04-07 19:54:07,872 - investor_report - INFO - Added CAMP details
+2025-04-07 19:54:07,872 - investor_report - INFO - Adding business model section
+2025-04-07 19:54:07,873 - investor_report - INFO - Added business model section
+2025-04-07 19:54:07,873 - investor_report - INFO - Added market analysis section
+2025-04-07 19:54:08,172 - investor_report - INFO - Added bar chart: Leadership Positions
+2025-04-07 19:54:08,172 - investor_report - INFO - Added team assessment section
+2025-04-07 19:54:08,173 - investor_report - INFO - Added competitive analysis section
+2025-04-07 19:54:08,173 - investor_report - INFO - Added growth metrics section
+2025-04-07 19:54:08,173 - investor_report - INFO - Added risk assessment section
+2025-04-07 19:54:08,173 - investor_report - INFO - Added exit strategy section
+2025-04-07 19:54:08,173 - investor_report - INFO - Added technical assessment section
+2025-04-07 19:54:08,427 - investor_report - INFO - PDF report generation completed successfully
+2025-04-07 19:54:08,427 - pdf_tester - INFO - Generated enhanced PDF with 94823 bytes
+2025-04-07 19:54:08,428 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 19:58:35,385 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 19:58:35,385 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 19:58:35,386 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 19:58:35,386 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 19:58:35,386 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 19:58:35,388 - investor_report - INFO - Added cover page
+2025-04-07 19:58:35,388 - investor_report - INFO - Added table of contents
+2025-04-07 19:58:35,389 - investor_report - INFO - Adding executive summary
+2025-04-07 19:58:35,390 - investor_report - INFO - Added executive summary
+2025-04-07 19:58:35,393 - investor_report - INFO - Added CAMP details
+2025-04-07 19:58:35,393 - investor_report - INFO - Adding business model section
+2025-04-07 19:58:35,394 - investor_report - INFO - Added business model section
+2025-04-07 19:58:35,394 - investor_report - INFO - Added market analysis section
+2025-04-07 19:58:35,396 - investor_report - ERROR - Error creating team assessment section: InvestorReport.add_bar_chart() takes 5 positional arguments but 6 were given
+Traceback (most recent call last):
+  File "/Users/macbookpro/Desktop/FlashDnaProject 3/unified_pdf_generator.py", line 976, in create_team_assessment_section
+    self.add_bar_chart(
+    ~~~~~~~~~~~~~~~~~~^
+        leaders,
+        ^^^^^^^^
+    ...<3 lines>...
+        ['#2CA02C' if s else '#D62728' for s in status]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: InvestorReport.add_bar_chart() takes 5 positional arguments but 6 were given
+
+2025-04-07 19:58:35,397 - investor_report - INFO - Added competitive analysis section
+2025-04-07 19:58:35,397 - investor_report - INFO - Added growth metrics section
+2025-04-07 19:58:35,397 - investor_report - INFO - Added risk assessment section
+2025-04-07 19:58:35,397 - investor_report - INFO - Added exit strategy section
+2025-04-07 19:58:35,398 - investor_report - INFO - Added technical assessment section
+2025-04-07 19:58:35,449 - investor_report - INFO - PDF report generation completed successfully
+2025-04-07 19:58:35,449 - pdf_tester - INFO - Generated enhanced PDF with 22482 bytes
+2025-04-07 19:58:35,450 - pdf_tester - INFO - Saved to test_report.pdf
+2025-04-07 19:59:36,238 - pdf_tester - INFO - Generating PDF report...
+2025-04-07 19:59:36,239 - pdf_tester - INFO - Attempting enhanced PDF generation...
+2025-04-07 19:59:36,239 - investor_report - INFO - Starting enhanced PDF generation with report type: full
+2025-04-07 19:59:36,239 - investor_report - INFO - Initialized InvestorReport for Test Startup
+2025-04-07 19:59:36,240 - investor_report - INFO - Added logo from static/logo.png
+2025-04-07 19:59:36,241 - investor_report - INFO - Added cover page
+2025-04-07 19:59:36,242 - investor_report - INFO - Added table of contents
+2025-04-07 19:59:36,242 - investor_report - INFO - Adding executive summary
+2025-04-07 19:59:36,243 - investor_report - INFO - Added executive summary
+2025-04-07 19:59:36,244 - investor_report - INFO - Added CAMP details
+2025-04-07 19:59:36,244 - investor_report - INFO - Adding business model section
+2025-04-07 19:59:36,245 - investor_report - INFO - Added business model section
+2025-04-07 19:59:36,246 - investor_report - INFO - Added market analysis section
+2025-04-07 19:59:36,627 - investor_report - INFO - Added bar chart: Leadership Positions
+2025-04-07 19:59:36,627 - investor_report - INFO - Added team assessment section
+2025-04-07 19:59:36,627 - investor_report - INFO - Added competitive analysis section
+2025-04-07 19:59:36,628 - investor_report - INFO - Added growth metrics section
+2025-04-07 19:59:36,628 - investor_report - INFO - Added risk assessment section
+2025-04-07 19:59:36,628 - investor_report - INFO - Added exit strategy section
+2025-04-07 19:59:36,628 - investor_report - INFO - Added technical assessment section
+2025-04-07 19:59:36,927 - investor_report - INFO - PDF report generation completed successfully
+2025-04-07 19:59:36,927 - pdf_tester - INFO - Generated enhanced PDF with 122217 bytes
+2025-04-07 19:59:36,927 - pdf_tester - INFO - Saved to test_report.pdf
