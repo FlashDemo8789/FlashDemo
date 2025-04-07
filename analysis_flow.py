@@ -262,6 +262,8 @@ def initialize_session():
 
 def load_xgb_model():
     """Load the trained XGBoost model for startup success prediction."""
+    from model_wrapper import ModelWrapper
+    
     # Set model locations to try in order (environment variable, multiple paths)
     model_paths = [
         os.getenv("MODEL_PATH", ""),  # First try env variable if set
@@ -286,54 +288,8 @@ def load_xgb_model():
             with open(model_path, "rb") as f:
                 model = pickle.load(f)
             
-            # Create a proper model wrapper to handle different XGBoost versions
+            # Wrap the model for compatibility
             logger.info("Creating model wrapper for compatibility")
-            class ModelWrapper:
-                def __init__(self, model):
-                    self.model = model
-                    # Don't try to access or set use_label_encoder attribute
-                    # It's not available in newer XGBoost versions
-                
-                def predict_proba(self, X):
-                    """Wrapper for predict_proba that handles various model types."""
-                    try:
-                        # For models with predict_proba
-                        return self.model.predict_proba(X)
-                    except AttributeError:
-                        # For models without predict_proba, using predict
-                        logger.info("Model doesn't have predict_proba, using predict instead")
-                        try:
-                            preds = self.model.predict(X)
-                            if len(preds.shape) == 1:
-                                # Convert to pseudo-probabilities for binary classification
-                                prob = np.clip(preds, 0, 1)
-                                return np.vstack([1-prob, prob]).T
-                            else:
-                                # Already has multiple columns
-                                return preds
-                        except Exception as e:
-                            logger.error(f"Predict failed: {str(e)}")
-                            # Return 50/50 probability if all else fails
-                            if len(X) == 1:
-                                return np.array([[0.5, 0.5]])
-                            else:
-                                return np.tile([0.5, 0.5], (len(X), 1))
-                
-                def predict(self, X):
-                    try:
-                        # Try direct predict first
-                        return self.model.predict(X)
-                    except Exception as e:
-                        # Fall back to predict_proba
-                        try:
-                            probs = self.predict_proba(X)
-                            return probs[:, 1]
-                        except Exception as e:
-                            logger.error(f"Error in predict: {str(e)}")
-                            # Safe fallback
-                            return np.array([0.5] * X.shape[0])
-            
-            # Wrap the model
             wrapped_model = ModelWrapper(model)
             logger.info(f"Model loaded successfully from {model_path}")
             return wrapped_model
@@ -347,15 +303,8 @@ def load_xgb_model():
     
     # If we reach here, all paths failed
     logger.warning("All model paths failed. Using fallback model.")
-    # Return a fallback model that always predicts 0.5 probability
-    class FallbackModel:
-        def predict(self, X):
-            return np.array([0.5] * X.shape[0])
-        
-        def predict_proba(self, X):
-            return np.array([[0.5, 0.5]] * X.shape[0])
-    
-    return FallbackModel()
+    # Return a fallback model using our wrapper with no underlying model
+    return ModelWrapper()
 
 # Helper function to convert objects to dictionaries
 def to_dict(obj):
