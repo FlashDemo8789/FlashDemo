@@ -24,11 +24,13 @@ import tempfile
 import csv
 from io import StringIO
 import copy
+import sys
+import importlib
 
 # Import core analysis modules
 from advanced_ml import evaluate_startup, evaluate_startup_camp
-# Correctly replaced intangible_llm with intangible_api
-from intangible_api import compute_intangible_llm
+# Use enhanced AI integration for intangible score calculation
+from enhanced_ai_integration import compute_intangible_llm
 from domain_expansions import apply_domain_expansions
 from team_moat import compute_team_depth_score, compute_moat_score, evaluate_team_execution_risk
 from pattern_detector import detect_patterns, generate_pattern_insights
@@ -66,47 +68,40 @@ from cohort_analysis import CohortAnalyzer
 from network_analysis import NetworkEffectAnalyzer
 from benchmarking import BenchmarkEngine, BenchmarkResult
 
+# Setup logging FIRST
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("analysis_flow")
+
 # Import PDF patch to ensure all PDF generation functions are available
 import pdf_patch
 # Explicitly apply the patch to ensure PDF functions are globally available
+# This should make generate_enhanced_pdf etc. available via builtins or patched modules
 pdf_patch.apply_patch()
 
-# Import global PDF functions to ensure they're available in this module's namespace
-import global_pdf_functions
-from global_pdf_functions import generate_enhanced_pdf, generate_investor_report
-
-# Import PDF generator functions directly to ensure they're available in this module's namespace
+# Import global PDF functions - these should now be the patched versions
+# Use these functions throughout the analysis flow
 try:
-    from unified_pdf_generator import generate_enhanced_pdf, generate_investor_report
-except ImportError:
-    logging.error("Failed to import PDF generator functions directly")
-
-# Configuration variables
-USE_UNIFIED_PDF_GENERATOR = True  # Set to True to use the new unified PDF generator
-
-# Use try/except for report_generator that requires fpdf
-try:
-    from report_generator import generate_investor_report
-except ImportError:
-    def generate_investor_report(*args, **kwargs):
-        try:
-            from report_generator import generate_investor_report as report_gen
-            logger.info("Importing report generator successfully")
-            return report_gen(*args, **kwargs)
-        except ImportError:
-            logger.error("Failed to import report generator module")
-            return "Report generation failed - fpdf not installed"
-        except Exception as e:
-            logger.error(f"Error generating report: {str(e)}")
-            return f"Report generation failed: {str(e)}"
+    # Reload in case it was imported before patching
+    if 'global_pdf_functions' in sys.modules:
+         global_pdf_functions = importlib.reload(sys.modules['global_pdf_functions'])
+    else:
+         import global_pdf_functions
+    # Make them easily accessible in this namespace if needed, otherwise use global_pdf_functions.func_name
+    from global_pdf_functions import generate_enhanced_pdf, generate_emergency_pdf, generate_investor_report
+    logger.info("Successfully imported patched PDF functions via global_pdf_functions.")
+except ImportError as e:
+     logger.critical(f"Failed to import global_pdf_functions even after patching: {e}. PDF generation will likely fail.")
+     # Define dummy functions to prevent NameErrors later, though generation will fail
+     def generate_enhanced_pdf(*args, **kwargs):
+         logger.error("Dummy generate_enhanced_pdf called - import failed.")
+         return b""
+     generate_emergency_pdf = generate_enhanced_pdf
+     generate_investor_report = generate_enhanced_pdf
 
 from acquisition_fit import AcquisitionFitAnalyzer, AcquisitionFitResult
 # Adding the missing import for comparative exit path analysis
 from comparative_exit_path import ExitPathAnalyzer
 from utils import create_placeholder, extract_text_from_pdf, create_radar_chart
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("analysis_flow")
 
 
 ########################################
@@ -2383,59 +2378,78 @@ def render_report_tab(doc: dict):
                     try:
                         # Create a unique filename with timestamp
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        output_path = f"reports/{doc_copy.get('company_name', 'startup')}_{timestamp}.pdf"
+                        output_path = f"reports/{doc_copy.get('name', doc_copy.get('company_name', 'startup'))}_{timestamp}.pdf"
                         
                         # Ensure reports directory exists
                         os.makedirs("reports", exist_ok=True)
                         
-                        # Try multiple approaches to get generate_enhanced_pdf function
+                        # SIMPLIFIED APPROACH: Use unified_pdf_generator directly with better error handling
                         success = False
                         error_message = ""
                         
-                        # Try direct call first (builtins or module import)
+                        # Try using unified_pdf_generator directly - our fixed version
                         try:
-                            # This should work if pdf_patch was successful
-                            success = generate_enhanced_pdf(doc_copy, output_path)
-                            logger.info("Generated PDF using direct call to generate_enhanced_pdf")
-                        except NameError as ne:
-                            error_message = f"NameError: {str(ne)}"
-                            logger.warning(f"Direct call failed: {error_message}")
+                            # Import with absolute import to avoid any namespace issues
+                            import unified_pdf_generator
+                            # Force reload the module to ensure we get the latest version
+                            import importlib
+                            unified_pdf_generator = importlib.reload(unified_pdf_generator)
                             
-                            # Try importing from pdf_generator
-                            try:
-                                import pdf_generator
-                                success = pdf_generator.generate_enhanced_pdf(doc_copy, output_path)
-                                logger.info("Generated PDF using pdf_generator.generate_enhanced_pdf")
-                            except (ImportError, AttributeError) as e:
-                                error_message += f"\nFailed to use pdf_generator: {str(e)}"
-                                logger.warning(f"pdf_generator import failed: {str(e)}")
+                            # Get the PDF data as bytes
+                            pdf_data = unified_pdf_generator.generate_enhanced_pdf(doc_copy, report_type="full", sections=None)
+                            
+                            # Write the bytes to the output file
+                            with open(output_path, 'wb') as f:
+                                f.write(pdf_data)
                                 
-                                # Try importing directly from unified_pdf_generator
-                                try:
-                                    import unified_pdf_generator
-                                    success = unified_pdf_generator.generate_enhanced_pdf(doc_copy, output_path)
-                                    logger.info("Generated PDF using unified_pdf_generator.generate_enhanced_pdf")
-                                except (ImportError, AttributeError) as e:
-                                    error_message += f"\nFailed to use unified_pdf_generator: {str(e)}"
-                                    logger.error(f"All PDF generation attempts failed: {error_message}")
-                                    raise Exception(f"PDF generation failed: {error_message}")
+                            success = True
+                            logger.info(f"Generated PDF using unified_pdf_generator: {output_path}")
                         except Exception as e:
-                            error_message = f"Unexpected error: {str(e)}"
-                            logger.error(f"PDF generation failed with error: {error_message}")
-                            raise
+                            error_message = f"unified_pdf_generator failed: {str(e)}"
+                            logger.error(f"unified_pdf_generator error: {error_message}")
+                            # Add detailed traceback for debugging
+                            import traceback
+                            logger.error(f"Traceback: {traceback.format_exc()}")
+                            
+                            # Fallback to robust_pdf if available
+                            try:
+                                import robust_pdf
+                                success = robust_pdf.generate_pdf(doc_copy, output_path)
+                                logger.info(f"Generated PDF using robust_pdf.generate_pdf: {output_path}")
+                            except Exception as e2:
+                                error_message += f"\nrobust_pdf also failed: {str(e2)}"
+                                logger.error(f"robust_pdf error: {str(e2)}")
+                                
+                                # Last resort: emergency PDF generator
+                                try:
+                                    from emergency_pdf_generator import emergency_generate_pdf
+                                    pdf_data = emergency_generate_pdf(doc_copy, "full", None)
+                                    with open(output_path, 'wb') as f:
+                                        f.write(pdf_data)
+                                    success = True
+                                    logger.info(f"Generated emergency PDF: {output_path}")
+                                except Exception as e3:
+                                    error_message += f"\nEmergency PDF also failed: {str(e3)}"
+                                    logger.error(f"All PDF generation methods failed: {error_message}")
+                                    raise Exception(f"PDF generation failed: {error_message}")
                         
                         if success:
                             # Read the generated PDF file
                             with open(output_path, 'rb') as f:
                                 pdf_bytes = f.read()
                             
-                            st.download_button(
-                                label="Download Enhanced PDF Report",
-                                data=pdf_bytes,
-                                file_name=f"{doc_copy.get('company_name', 'startup')}_report.pdf",
-                                mime="application/pdf"
-                            )
-                            st.success("Enhanced PDF report generated successfully!")
+                            # Check if the PDF is valid (non-empty and above minimum size)
+                            if len(pdf_bytes) > 1000:  # A reasonable minimum size for a valid PDF
+                                st.download_button(
+                                    label="Download Enhanced PDF Report",
+                                    data=pdf_bytes,
+                                    file_name=f"{doc_copy.get('name', doc_copy.get('company_name', 'startup'))}_report.pdf",
+                                    mime="application/pdf"
+                                )
+                                st.success("Enhanced PDF report generated successfully!")
+                            else:
+                                st.error("Generated PDF appears to be invalid or empty. Please try JSON or CSV format instead.")
+                                logger.error(f"Generated PDF too small: {len(pdf_bytes)} bytes")
                         else:
                             st.error("PDF generation failed. Please try JSON or CSV format instead.")
                     except Exception as e:
@@ -2474,76 +2488,86 @@ def render_report_tab(doc: dict):
                 try:
                     # Create a unique filename with timestamp
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    output_path = f"reports/{doc_copy.get('company_name', 'startup')}_custom_{timestamp}.pdf"
+                    output_path = f"reports/{doc_copy.get('name', doc_copy.get('company_name', 'startup'))}_custom_{timestamp}.pdf"
                     
                     # Ensure reports directory exists
                     os.makedirs("reports", exist_ok=True)
                     
-                    # Try multiple approaches for custom PDF generation
+                    # SIMPLIFIED APPROACH: Use unified_pdf_generator directly for custom reports
                     success = False
-                    error_message = ""
                     
-                    # Try direct call first (builtins or module import)
                     try:
-                        # This should work if pdf_patch was successful
-                        success = generate_enhanced_pdf(doc_copy, output_path, "custom", selected_sections)
-                        logger.info("Generated custom PDF using direct call to generate_enhanced_pdf")
-                    except NameError as ne:
-                        error_message = f"NameError: {str(ne)}"
-                        logger.warning(f"Direct call failed for custom PDF: {error_message}")
+                        # Import with absolute import to avoid any namespace issues
+                        import unified_pdf_generator
+                        # Force reload the module to ensure we get the latest version
+                        import importlib
+                        unified_pdf_generator = importlib.reload(unified_pdf_generator)
                         
-                        # Try importing from pdf_generator
-                        try:
-                            import pdf_generator
-                            success = pdf_generator.generate_enhanced_pdf(doc_copy, output_path, "custom", selected_sections)
-                            logger.info("Generated custom PDF using pdf_generator.generate_enhanced_pdf")
-                        except (ImportError, AttributeError) as e:
-                            error_message += f"\nFailed to use pdf_generator: {str(e)}"
-                            logger.warning(f"pdf_generator import failed for custom PDF: {str(e)}")
+                        # Get the PDF data as bytes
+                        pdf_data = unified_pdf_generator.generate_enhanced_pdf(
+                            doc_copy, 
+                            report_type="custom", 
+                            sections=selected_sections
+                        )
+                        
+                        # Write the bytes to the output file
+                        with open(output_path, 'wb') as f:
+                            f.write(pdf_data)
                             
-                            # Try importing directly from unified_pdf_generator
-                            try:
-                                import unified_pdf_generator
-                                success = unified_pdf_generator.generate_enhanced_pdf(doc_copy, output_path, "custom", selected_sections)
-                                logger.info("Generated custom PDF using unified_pdf_generator.generate_enhanced_pdf")
-                            except (ImportError, AttributeError) as e:
-                                error_message += f"\nFailed to use unified_pdf_generator: {str(e)}"
-                                logger.error(f"All custom PDF generation attempts failed: {error_message}")
-                                raise Exception(f"Custom PDF generation failed: {error_message}")
+                        success = True
+                        logger.info(f"Generated custom PDF using unified_pdf_generator: {output_path}")
                     except Exception as e:
-                        error_message = f"Unexpected error in custom PDF: {str(e)}"
-                        logger.error(f"Custom PDF generation failed with error: {error_message}")
-                        raise
+                        logger.error(f"Custom PDF generation error: {str(e)}")
+                        import traceback
+                        logger.error(f"Traceback: {traceback.format_exc()}")
+                        
+                        # Fallback to robust_pdf if available
+                        try:
+                            import robust_pdf
+                            success = robust_pdf.generate_pdf(doc_copy, output_path, "custom", selected_sections)
+                            logger.info(f"Generated custom PDF using robust_pdf: {output_path}")
+                        except Exception as e2:
+                            logger.error(f"robust_pdf custom generation failed: {str(e2)}")
+                            
+                            # Last resort: emergency PDF generator
+                            try:
+                                from emergency_pdf_generator import emergency_generate_pdf
+                                pdf_data = emergency_generate_pdf(doc_copy, "custom", selected_sections)
+                                with open(output_path, 'wb') as f:
+                                    f.write(pdf_data)
+                                success = True
+                                logger.info(f"Generated emergency custom PDF: {output_path}")
+                            except Exception as e3:
+                                logger.error(f"All custom PDF generation methods failed: {str(e3)}")
+                                raise Exception(f"Custom PDF generation failed completely")
                     
                     if success:
                         # Read the generated PDF file
                         with open(output_path, 'rb') as f:
                             pdf_bytes = f.read()
                         
-                        st.download_button(
-                            label="Download Custom PDF Report",
-                            data=pdf_bytes,
-                            file_name=f"{doc_copy.get('company_name', 'startup')}_custom_report.pdf",
-                            mime="application/pdf"
-                        )
-                        st.success("Custom PDF report generated successfully!")
+                        # Check if the PDF is valid
+                        if len(pdf_bytes) > 1000:
+                            st.download_button(
+                                label="Download Custom PDF Report",
+                                data=pdf_bytes,
+                                file_name=f"{doc_copy.get('name', doc_copy.get('company_name', 'startup'))}_custom_report.pdf",
+                                mime="application/pdf"
+                            )
+                            st.success("Custom PDF report generated successfully!")
+                        else:
+                            st.error("Generated custom PDF appears to be invalid or empty.")
+                            logger.error(f"Generated custom PDF too small: {len(pdf_bytes)} bytes") 
                     else:
                         st.error("Custom PDF generation failed. Please try JSON or CSV format instead.")
                 except Exception as e:
                     st.error(f"Custom PDF generation failed: {str(e)}")
                     st.info("Please use JSON or CSV download formats instead.")
-        
-        # Display preview
-        with st.expander("Preview Report Data"):
-            try:
-                st.json(json.loads(json_str))
-            except Exception as e:
-                logging.error(f"Error displaying JSON preview: {str(e)}")
-                st.error("Could not display report preview. Please download to view.")
-    
     except Exception as e:
-        logging.error(f"Error in report generation: {str(e)}")
-        st.error("An error occurred while preparing the report data. Please try again.")
+        st.error(f"Report tab error: {str(e)}")
+        logger.error(f"Report tab error: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
 def generate_pdf_safely(doc_copy, report_type="full", sections=None):
     """
