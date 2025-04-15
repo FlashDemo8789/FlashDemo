@@ -6,4 +6,8 @@ echo "\
 headless = true
 port = $PORT
 enableCORS = false
+enableXsrfProtection = false
 " > ~/.streamlit/config.toml
+
+# Now actually run your Streamlit app
+streamlit run analysis_flow.py
