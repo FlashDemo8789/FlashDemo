@@ -9,5 +9,5 @@ enableCORS = false
 enableXsrfProtection = false
 " > ~/.streamlit/config.toml
 
-# Now actually run your Streamlit app
-streamlit run analysis_flow.py
+# Run Streamlit with the port explicitly passed
+streamlit run analysis_flow.py --server.port=$PORT
